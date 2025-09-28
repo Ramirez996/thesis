@@ -16,7 +16,16 @@ import json
 
 # ---------------- Flask + CORS ----------------
 app = Flask(__name__)
-CORS(app)
+CORS(app, 
+     origins=[
+         "http://localhost:3000", 
+         "http://localhost:5173", 
+         "https://*.vercel.app",
+         os.getenv("FRONTEND_URL", "*")
+     ],
+     allow_headers=["Content-Type", "Authorization"],
+     methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+)
 
 # ---------------- BERT Model ----------------
 MODEL_NAME = "google-bert/bert-base-uncased"
@@ -31,14 +40,33 @@ training_status = {"status": "idle", "epoch": 0, "loss": None}
 model = None
 label_encoder = LabelEncoder()
 
-# ---------------- MySQL ----------------
-db = mysql.connector.connect(
-    host=os.getenv("DB_HOST", "127.0.0.1"),
-    user=os.getenv("DB_USER", "root"),
-    password=os.getenv("DB_PASSWORD",""),
-    database=os.getenv("DB_NAME", "mental_health")
-)
-cursor = db.cursor(dictionary=True)
+# ---------------- Database Connection ----------------
+def get_db_connection():
+    try:
+        connection = mysql.connector.connect(
+            host=os.getenv("DB_HOST", "127.0.0.1"),
+            user=os.getenv("DB_USER", "root"),
+            password=os.getenv("DB_PASSWORD", ""),
+            database=os.getenv("DB_NAME", "mental_health"),
+            port=int(os.getenv("DB_PORT", "3306")),
+            ssl_disabled=os.getenv("DB_SSL_DISABLED", "false").lower() == "true",
+            autocommit=True,
+            connection_timeout=60
+        )
+        return connection
+    except mysql.connector.Error as err:
+        print(f"Database connection error: {err}")
+        return None
+
+db = get_db_connection()
+cursor = db.cursor(dictionary=True) if db else None
+
+def ensure_db_connection():
+    global db, cursor
+    if db is None or not db.is_connected():
+        db = get_db_connection()
+        cursor = db.cursor(dictionary=True) if db else None
+    return db, cursor
 
 # ---------------- Dataset & Model ----------------
 class EmotionDataset(Dataset):
@@ -144,21 +172,27 @@ def gad7_risk():
     hybrid_score = (probability + anomaly_score)/2
     risk_level = "High" if hybrid_score >= 0.5 else "Low"
 
-    cursor.execute("""
-        INSERT INTO anxiety_results (user_name, score, result_text, description, lr_score, bert_anomaly_score, final_risk, is_high_risk, answers_json)
-        VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)
-    """, (
-        user_name,
-        int(sum(answers)) if answers else 0,
-        risk_level,
-        "Hybrid GAD-7 + BERT analysis",
-        round(probability,4),
-        round(anomaly_score,4),
-        risk_level,
-        risk_level=="High",
-        json.dumps(answers)
-    ))
-    db.commit()
+    # non-blck
+    try:
+        db_conn, cursor_conn = ensure_db_connection()
+        if db_conn and cursor_conn:
+            cursor_conn.execute("""
+                INSERT INTO anxiety_results (user_name, score, result_text, description, lr_score, bert_anomaly_score, final_risk, is_high_risk, answers_json)
+                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)
+            """, (
+                user_name,
+                int(sum(answers)) if answers else 0,
+                risk_level,
+                "Hybrid GAD-7 + BERT analysis",
+                round(probability,4),
+                round(anomaly_score,4),
+                risk_level,
+                risk_level=="High",
+                json.dumps(answers)
+            ))
+            db_conn.commit()
+    except Exception as e:
+        print(f"Database error in GAD-7: {e}")
 
     return jsonify({
         "lr_score": round(probability,4),
@@ -442,6 +476,32 @@ def train():
 @app.route('/training_status', methods=['GET'])
 def get_training_status():
     return jsonify(training_status)
+
+# ---------------- Health Check ----------------
+@app.route('/', methods=['GET'])
+def health_check():
+    return jsonify({
+        "status": "healthy",
+        "message": "Mental Health System API is running",
+        "version": "1.0.0"
+    })
+
+@app.route('/health', methods=['GET'])
+def health():
+    db_status = "disconnected"
+    try:
+        db_conn, _ = ensure_db_connection()
+        if db_conn and db_conn.is_connected():
+            db_status = "connected"
+    except Exception as e:
+        print(f"Health check database error: {e}")
+    
+    return jsonify({
+        "status": "healthy",
+        "database": db_status,
+        "model_loaded": model is not None,
+        "environment": os.getenv("RAILWAY_ENVIRONMENT", "development")
+    })
 
 # ---------------- Analyze Text ----------------
 @app.route('/analyze', methods=['POST'])
