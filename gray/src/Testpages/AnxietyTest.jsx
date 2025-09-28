@@ -1,6 +1,7 @@
 import React, { useState, useRef } from "react";
 import "../testDesign/EatingTest.css";
 import Chatbot from "../pages/Chatbot";
+import { getApiUrl } from "../config/api";
 
 const questions = [
   { id: 1, text: "Feeling nervous, anxious, or on edge?", options: ["Not at all", "Several days", "More than half the days", "Nearly every day"] },
@@ -46,7 +47,7 @@ const AnxietyTest = () => {
     setScore(totalScore);
 
     try {
-      const response = await fetch("http://127.0.0.1:5000/gad7_risk", {
+      const response = await fetch(getApiUrl('GAD7_RISK'), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
