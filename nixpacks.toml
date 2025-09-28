@@ -1,11 +1,5 @@
-#i force it on python since node dinedetect niya
-[providers]
-only = ["python"]
-
-#set to 1 to bypass
+providers = ["python"]
 [variables]
 PIP_BREAK_SYSTEM_PACKAGES = "1"
-
-# start
 [start]
 cmd = "gunicorn app:app --bind 0.0.0.0:$PORT --timeout 300 --workers 1"
