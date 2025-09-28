@@ -1,0 +1,315 @@
+
+/* Layout */
+.peer-layout {
+  display: flex;
+  min-height: 100vh;
+}
+
+/* Sidebars */
+.left-sidebar,
+.right-sidebar {
+  color: var(--text-dark);
+  width: 240px;
+  padding: 20px;
+  background-color: #ffffff;
+  border-right: 1px solid #e0e0e0;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.02);
+}
+
+.left-sidebar h3,
+.right-sidebar h4 {
+  margin-bottom: 15px;
+  color: #2b6cb0;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.left-sidebar ul,
+.right-sidebar ul {
+  list-style: none;
+  padding: 0;
+}
+
+.left-sidebar li,
+.right-sidebar li {
+  padding: 10px 14px;
+  border-radius: 6px;
+  margin-bottom: 5px;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.left-sidebar li:hover,
+.right-sidebar li:hover {
+  background-color: #edf2f7;
+  color : var(--text-dark);
+}
+
+.left-sidebar .active {
+  background-color: #2b6cb0;
+  color: white;
+  font-weight: bold;
+}
+
+/* Main Content */
+.main-content {
+  flex: 1;
+  padding: 30px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  background-color: #f9fbff;
+}
+
+.space-header h2 {
+  margin: 0;
+  color: #2b6cb0;
+  font-size: 1.6rem;
+}
+
+.anonymous-note {
+  font-size: 0.85rem;
+  color: #666;
+  margin-top: 6px;
+}
+
+/* Post Box */
+.post-box {
+  padding: 20px;
+  background-color: #fff;
+  border-radius: 10px;
+  border: 1px solid #dbe2ef;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+}
+
+.post-box textarea {
+  width: 100%;
+  padding: 10px;
+  border: 1.5px solid #cbd5e0;
+  border-radius: 8px;
+  resize: none;
+  font-family: inherit;
+  background-color: #fefefe;
+  color: #333;
+  font-size: 1rem;
+}
+
+.post-box button {
+  margin-top: 12px;
+  padding: 10px 24px;
+  background-color: #2b6cb0;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.post-box button:hover {
+  background-color: #1e4e8c;
+}
+
+/* Posts */
+.post-card {
+  background-color: #fff;
+  padding: 18px;
+  border-radius: 10px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.04);
+  border: 1px solid #e2e8f0;
+}
+
+.post-text {
+  margin-bottom: 12px;
+  color: #222;
+  font-size: 1rem;
+}
+
+.comment-area {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.comment-area input {
+  flex: 1;
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid #cbd5e0;
+  font-size: 0.95rem;
+}
+
+.comment-area button {
+  background-color: #38a169;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.comment-area button:hover {
+  background-color: #2f855a;
+}
+
+.comment-text {
+  margin-left: 14px;
+  margin-top: 6px;
+  color: #444;
+  font-size: 0.9rem;
+}
+
+/* Resource Links */
+.resource-links {
+  background-color: #ffffff;
+  padding: 20px;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+}
+
+.resource-links h3 {
+  color: #2b6cb0;
+  margin-bottom: 15px;
+}
+
+.resource-links ul {
+  list-style: none;
+  padding: 0;
+}
+
+.resource-links li {
+  margin-bottom: 12px;
+  font-size: 0.95rem;
+}
+
+.resource-links a {
+  color: #2b6cb0;
+  text-decoration: none;
+}
+
+.resource-links a:hover {
+  text-decoration: underline;
+}
+
+.note {
+  margin-top: 18px;
+  font-size: 0.9rem;
+  color: #555;
+  font-style: italic;
+}
+
+/* Close Button */
+.close-modal-btn {
+  background-color: #e53e3e;
+  color: #fff;
+  border: none;
+  padding: 10px 24px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.95rem;
+  margin: 40px auto 20px auto;
+  display: block;
+  transition: background 0.2s;
+}
+
+.close-modal-btn:hover {
+  background-color: #c53030;
+}
+.sentiment {
+  margin-left: 10px;
+  font-weight: bold;
+  text-transform: capitalize;
+}
+
+.model-status {
+  font-size: 0.9rem;
+  color: #888;
+  margin-top: 5px;
+}
+
+.sentiment.positive {
+  color: green;
+  font-weight: bold;
+}
+
+.sentiment.negative {
+  color: red;
+  font-weight: bold;
+}
+
+.sentiment.neutral {
+  color: gray;
+  font-weight: bold;
+}
+
+/* Add this to style the poster's name */
+.poster-name {
+  font-weight: bold;
+  color: #4CAF50; /* You can choose a color that fits your design */
+  margin-right: 5px;
+}
+
+.post-text {
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.comment-area {
+  margin-top: 10px;
+}
+
+.comment-text {
+  font-size: 12px;
+  margin-top: 5px;
+  color: #555;
+}
+
+.emotion-tag {
+  font-style: italic;
+  color: #777;
+}
+
+.resource-links {
+  padding: 10px;
+}
+
+.note {
+  margin-top: 10px;
+  font-size: 14px;
+  font-weight: bold;
+  color: #444;
+}
+.delete-comment {
+  background-color: #f44336; /* Red for delete */
+  color: white;
+  border: none;
+  padding: 5px 10px;
+  cursor: pointer;
+  margin-left: 10px;
+}
+
+.delete-comment:hover {
+  background-color: #d32f2f;
+}
+
+.delete-button {
+  background-color: #f44336; /* Red for delete */
+  color: white;
+  border: none;
+  padding: 5px 10px;
+  cursor: pointer;
+  margin-left: 10px;
+}
+.delete-button:hover {
+  background-color: #d32f2f;
+}
+.about-developer, .about-system {
+  background-color: #e0f7fa;
+  padding: 15px;
+  border-radius: 8px;
+  border: 1px solid #b2ebf2;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  color: #222;
+}

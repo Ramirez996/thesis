@@ -1,0 +1,89 @@
+.test-buttons {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+  max-width: 1000px;
+  margin: 60px auto 20px;
+  color: rgba(13, 38, 92, 0.699);
+}
+
+.test-buttons-title {
+  width: 100%;
+  text-align: center;
+  margin-bottom: 20px;
+  padding-bottom: 10px;
+}
+
+.test-buttons-title h2 {
+  font-size: 2rem;
+  color: rgba(13, 38, 92, 0.85);
+  margin: 0 auto;
+  font-weight: 600;
+
+}
+
+.test-button-group {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 20px;
+  flex: 1;
+  width: 100%;
+}
+
+.test-button {
+  background: rgb(38, 189, 194);
+  backdrop-filter: blur(8px);
+  border: 2px solid rgba(0, 41, 223, 0.151);
+  color: #ffffff;
+  padding: 12px 20px;
+  font-size: 1rem;
+  font-weight: bold;
+  border-radius: 30px;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.3s ease-in-out;
+  text-align: center;
+}
+
+.test-button:hover,
+.plus-button:hover {
+  background: rgba(161, 237, 250, 0.897);
+  border-color: rgba(255, 255, 255, 0.7);
+  color: black !important;
+}
+
+.test-button:active {
+  background: rgba(255, 255, 255, 0.6);
+  color: black !important;
+}
+
+/* Tablets */
+@media screen and (max-width: 768px) {
+  .test-button-group {
+    gap: 15px;
+    flex-wrap: wrap;
+  }
+
+  .test-button {
+    padding: 10px 18px;
+    font-size: 0.95rem;
+  }
+}
+
+/* Mobile */
+@media screen and (max-width: 480px) {
+  .test-button-group {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .test-button {
+    width: 100%;
+    max-width: 300px;
+    font-size: 0.9rem;
+    padding: 10px 16px;
+  }
+}

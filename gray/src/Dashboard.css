@@ -1,0 +1,86 @@
+:root { 
+  --text-dark: #5a5a5a;
+}
+
+html, body {
+  background: white;
+  font-family: "Montserrat", Arial, Helvetica, sans-serif;
+  margin: 0;
+  padding: 0;
+  font-size: 16px;
+  line-height: 1.5;
+  overflow-x: hidden;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* === Dashboard Layout === */
+.dashboard {
+  
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* === Main Content Area === */
+.main-content {
+ background-color: white;
+  flex: 1;
+  padding: 8rem 2rem 2rem;
+  width: 100%;
+  max-width: 1000px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+/* === Home Button === */
+.home-button {
+  color: var(--text-dark);
+  padding: 0.25rem 0.5rem;
+  font-size: 2rem;
+  font-weight: bold;
+  border-radius: 8px;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.3s ease-in-out;
+  margin-left: 2rem;
+  margin-right: auto;
+}
+
+.home-button:hover {
+  color: var(--text-dark) !important;
+}
+
+
+
+/* Tablets (max-width: 768px) */
+@media screen and (max-width: 768px) {
+  .main-content {
+    padding: 6rem 1.5rem 2rem;
+    max-width: 90%;
+  }
+
+  .home-button {
+    font-size: 1.5rem;
+    margin-left: 1rem;
+  }
+}
+
+/* Mobile devices (max-width: 480px) */
+@media screen and (max-width: 480px) {
+  html, body {
+    font-size: 15px;
+  }
+
+  .main-content {
+    padding: 5rem 1rem 1.5rem;
+  }
+
+  .home-button {
+    font-size: 1.3rem;
+    margin-left: 0.5rem;
+  }
+}
+
+
+

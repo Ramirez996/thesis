@@ -1,0 +1,33 @@
+.mental-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  color: var(--text-dark);
+  padding: 2rem;
+}
+
+.mental-description button {
+  font-size: 20px;
+  margin-bottom: 20px;
+  text-align: center;
+  border-radius: 30px;
+  background-color: rgba(8, 134, 143, 0.699);
+  font-weight: bold;
+}
+
+.mental-description h2 {
+  margin-bottom: 1rem;
+}
+
+.mental-description p {
+  margin-bottom: 1rem;
+  line-height: 1.6;
+}
+
+.mental-description ul {
+  text-align: left;
+  margin-left: 1.5rem;
+  list-style-type: disc;
+}

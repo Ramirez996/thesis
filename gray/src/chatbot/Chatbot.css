@@ -1,0 +1,111 @@
+.chat-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  box-shadow: none; /* Already handled by parent */
+  border-radius: 10px;
+  overflow: hidden;
+  font-family: sans-serif;
+  background-color: #fff;
+  position: relative; /* no longer fixed */
+}
+
+
+.chat-box {
+  flex: 1;
+  padding: 15px;
+  overflow-y: auto;
+  background: #ebeaea;
+  display: flex;
+  flex-direction: column;
+}
+  
+  .chat-message {
+    margin: 10px 0;
+    padding: 10px 15px;
+    border-radius: 15px;
+    max-width: 80%;
+    word-wrap: break-word;
+  }
+  
+  .chat-message.user {
+    color: white;
+    background-color: rgba(24, 96, 99, 0.37);
+    align-self: flex-end;
+    ;
+  }
+  
+  .chat-message.bot {
+    background-color: rgb(38, 189, 194);
+    align-self: flex-start;
+  }
+  
+  .chat-input {
+    display: flex;
+    padding: 10px;
+    background: #fff;
+    border-top: 1px solid #ccc;
+  }
+  
+  .chat-input input {
+    flex: 1;
+    padding: 10px;
+    font-size: 1em;
+    border: 1px solid #ccc;
+    border-radius: 20px;
+    outline: none;
+    background: #ffe3e356;
+    color: var(--text-dark);
+  }
+  
+  .chat-input button {
+    margin-left: 10px;
+    padding: 10px 20px;
+    border: none;
+    background: rgb(38, 189, 194);
+    color: white;
+    border-radius: 20px;
+    cursor: pointer;
+  }
+  .chat-toggle-btn {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background-color: #269bc2;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 60px;
+    height: 60px;
+    font-size: 30px;
+    cursor: pointer;
+    z-index: 9998;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  }
+  .chatbot-wrapper {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 350px;
+    height: 500px;
+    resize: both; /* 👈 Makes it resizable */
+    overflow: auto; /* 👈 Ensures content scrolls inside */
+    z-index: 999;
+    background-color: white;
+    border: 2px solid #6fa8ff;
+    border-radius: 15px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    display: flex;
+    flex-direction: column;
+  }
+  @media (max-width: 480px) {
+    .chatbot-wrapper {
+      resize: none;
+      width: 100%;
+      right: 0;
+      bottom: 0;
+      border-radius: 0;
+      height: 100%;
+    }
+  }
+  
