@@ -2,11 +2,11 @@
 nixPkgs = ['python39', 'gcc']
 
 [phases.install]
-cmds = ['pip install -r requirements.txt']
+cmds = ['python -m pip install -r requirements.txt']
 
 [variables]
 PIP_BREAK_SYSTEM_PACKAGES = "1"
 PYTHON_VERSION = "3.9"
 
 [start]
-cmd = "gunicorn app:app --bind 0.0.0.0:$PORT --timeout 300 --workers 1"
+cmd = "python -m gunicorn app:app --bind 0.0.0.0:$PORT --timeout 300 --workers 1"
