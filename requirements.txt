@@ -9,7 +9,7 @@ psycopg2-binary==2.9.9
 gunicorn==21.2.0
 numpy==1.24.4
 safetensors==0.4.0
-tokenizers==0.13.3
+tokenizers==0.14.6
 huggingface-hub==0.19.4
 filelock==3.13.1
 regex==2023.10.3
