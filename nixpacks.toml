@@ -2,11 +2,14 @@
 nixPkgs = ['python39', 'python39Packages.pip', 'gcc']
 
 [phases.install]
-cmds = ['pip install -r requirements.txt']
+cmds = ['pip install -r requirements.txt --no-cache-dir --disable-pip-version-check']
 
 [variables]
 PIP_BREAK_SYSTEM_PACKAGES = "1"
 PYTHON_VERSION = "3.9"
+NIXPACKS_PYTHON_TEST_DISABLED = "1"
+PYTHONDONTWRITEBYTECODE = "1"
+PIP_NO_CACHE_DIR = "1"
 
 [start]
 cmd = "gunicorn app:app --bind 0.0.0.0:$PORT --timeout 300 --workers 1"
