@@ -1,5 +1,4 @@
 text,label
-<<<<<<< HEAD
 "I am going through some things with my feelings and myself. I barely sleep and I do nothing but think about how I am worthless and how I should not be here.",sadness
 "I've never tried or contemplated suicide. I've always wanted to fix my issues, but I never get around to it. How can I change my feeling of being worthless to everyone?",sadness
 "I am very happy that I am achieving my goals",happiness
@@ -653,16 +652,4 @@ I am so tired of feeling this way. I am so tired of feeling like I am not enough
 "Im not happy", neutral
 "Im not angry", neutral
 "Im not scared", neutral
-
-
-=======
-I am very happy,happiness
-I'm feeling really sad,sadness
-This is exciting,happiness
-I feel awful,sadness
-I am scared,fear
-I'm angry,anger
->>>>>>> parent of ef4a455 (added datasets for bert to train)
-
-
 
