@@ -554,6 +554,26 @@ def debug_db():
     
     return jsonify(debug_info)
 
+@app.route('/test-dataset', methods=['GET'])
+def test_dataset():
+    """Test endpoint to check if dataset loads properly"""
+    try:
+        import pandas as pd
+        df = pd.read_csv("emotion_dataset.csv")
+        return jsonify({
+            "status": "success",
+            "rows": len(df),
+            "columns": list(df.columns),
+            "sample": df.head(3).to_dict('records'),
+            "labels": df['label'].value_counts().to_dict()
+        })
+    except Exception as e:
+        return jsonify({
+            "status": "error", 
+            "error": str(e),
+            "error_type": type(e).__name__
+        })
+
 # ---------------- Analyze Text ----------------
 @app.route('/analyze', methods=['POST'])
 def analyze():
