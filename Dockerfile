@@ -10,6 +10,6 @@ RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
 
 COPY . .
 
-EXPOSE $PORT
+#i set in env so auto export na this
 
-CMD gunicorn app:app --bind 0.0.0.0:$PORT --timeout 300 --workers 1
+CMD ["sh", "-c", "gunicorn app:app --bind 0.0.0.0:$PORT --timeout 300 --workers 1"]
