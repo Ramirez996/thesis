@@ -507,6 +507,53 @@ def health():
         "environment": os.getenv("RAILWAY_ENVIRONMENT", "development")
     })
 
+@app.route('/debug-db', methods=['GET'])
+def debug_db():
+    """Debug endpoint to show detailed database connection information"""
+    debug_info = {
+        "environment_vars": {
+            "DATABASE_URL": "***" if os.getenv("DATABASE_URL") else None,
+            "DB_HOST": os.getenv("DB_HOST"),
+            "DB_USER": os.getenv("DB_USER"),
+            "DB_NAME": os.getenv("DB_NAME"),
+            "DB_PORT": os.getenv("DB_PORT"),
+            "DB_SSL_DISABLED": os.getenv("DB_SSL_DISABLED")
+        },
+        "connection_attempt": "failed",
+        "error": None
+    }
+    
+    try:
+        database_url = os.getenv("DATABASE_URL")
+        if database_url:
+            connection = psycopg2.connect(database_url, sslmode='require')
+            debug_info["connection_method"] = "DATABASE_URL"
+        else:
+            connection = psycopg2.connect(
+                host=os.getenv("DB_HOST", "localhost"),
+                user=os.getenv("DB_USER", "postgres"),
+                password=os.getenv("DB_PASSWORD", ""),
+                database=os.getenv("DB_NAME", "postgres"),
+                port=int(os.getenv("DB_PORT", "5432")),
+                sslmode='require'
+            )
+            debug_info["connection_method"] = "individual_vars"
+        
+        cursor = connection.cursor()
+        cursor.execute("SELECT 1")
+        result = cursor.fetchone()
+        cursor.close()
+        connection.close()
+        
+        debug_info["connection_attempt"] = "success"
+        debug_info["test_query"] = "passed"
+        
+    except Exception as e:
+        debug_info["error"] = str(e)
+        debug_info["error_type"] = type(e).__name__
+    
+    return jsonify(debug_info)
+
 # ---------------- Analyze Text ----------------
 @app.route('/analyze', methods=['POST'])
 def analyze():
