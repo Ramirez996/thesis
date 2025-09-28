@@ -1,8 +1,12 @@
 [phases.setup]
-nixPkgs = ['python39', 'python39Packages.pip', 'gcc']
+nixPkgs = ['python39', 'gcc']
 
 [phases.install]
-cmds = ['pip install -r requirements.txt --no-cache-dir --disable-pip-version-check']
+cmds = [
+  'python -m ensurepip --upgrade',
+  'pip install --upgrade pip setuptools wheel',
+  'pip install -r requirements.txt --no-cache-dir --disable-pip-version-check --prefer-binary'
+]
 
 [variables]
 PIP_BREAK_SYSTEM_PACKAGES = "1"
