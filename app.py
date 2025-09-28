@@ -9,7 +9,8 @@ import pandas as pd
 from sklearn.preprocessing import LabelEncoder
 from torch.utils.data import DataLoader, Dataset
 from sklearn.utils import shuffle
-import mysql.connector
+import psycopg2
+import psycopg2.extras
 import os
 import numpy as np
 import json
@@ -43,29 +44,32 @@ label_encoder = LabelEncoder()
 # ---------------- Database Connection ----------------
 def get_db_connection():
     try:
-        connection = mysql.connector.connect(
-            host=os.getenv("DB_HOST", "127.0.0.1"),
-            user=os.getenv("DB_USER", "root"),
-            password=os.getenv("DB_PASSWORD", ""),
-            database=os.getenv("DB_NAME", "mental_health"),
-            port=int(os.getenv("DB_PORT", "3306")),
-            ssl_disabled=os.getenv("DB_SSL_DISABLED", "false").lower() == "true",
-            autocommit=True,
-            connection_timeout=60
-        )
+        database_url = os.getenv("DATABASE_URL")
+        if database_url:
+            connection = psycopg2.connect(database_url, sslmode='require')
+        else:
+            connection = psycopg2.connect(
+                host=os.getenv("DB_HOST", "localhost"),
+                user=os.getenv("DB_USER", "postgres"),
+                password=os.getenv("DB_PASSWORD", ""),
+                database=os.getenv("DB_NAME", "postgres"),
+                port=int(os.getenv("DB_PORT", "5432")),
+                sslmode='require'
+            )
+        connection.autocommit = True
         return connection
-    except mysql.connector.Error as err:
+    except psycopg2.Error as err:
         print(f"Database connection error: {err}")
         return None
 
 db = get_db_connection()
-cursor = db.cursor(dictionary=True) if db else None
+cursor = db.cursor(cursor_factory=psycopg2.extras.RealDictCursor) if db else None
 
 def ensure_db_connection():
     global db, cursor
-    if db is None or not db.is_connected():
+    if db is None or db.closed:
         db = get_db_connection()
-        cursor = db.cursor(dictionary=True) if db else None
+        cursor = db.cursor(cursor_factory=psycopg2.extras.RealDictCursor) if db else None
     return db, cursor
 
 # ---------------- Dataset & Model ----------------
@@ -397,9 +401,9 @@ def create_post():
     space = data.get("space","Community Support")
     emotion = analyze_text(text).get("label","neutral")
 
-    cursor.execute("INSERT INTO posts (space,text,emotion) VALUES (%s,%s,%s)",(space,text,emotion))
+    cursor.execute("INSERT INTO posts (space,text,emotion) VALUES (%s,%s,%s) RETURNING id",(space,text,emotion))
+    post_id = cursor.fetchone()['id']
     db.commit()
-    post_id = cursor.lastrowid
     return jsonify({"id":post_id,"space":space,"text":text,"emotion":emotion,"comments":[]})
 
 @app.route('/posts/<int:post_id>/comments', methods=['POST'])
@@ -408,9 +412,9 @@ def add_comment(post_id):
     text = data.get("text","")
     emotion = analyze_text(text).get("label","neutral")
 
-    cursor.execute("INSERT INTO comments (post_id,text,emotion) VALUES (%s,%s,%s)",(post_id,text,emotion))
+    cursor.execute("INSERT INTO comments (post_id,text,emotion) VALUES (%s,%s,%s) RETURNING id",(post_id,text,emotion))
+    comment_id = cursor.fetchone()['id']
     db.commit()
-    comment_id = cursor.lastrowid
     return jsonify({"id":comment_id,"post_id":post_id,"text":text,"emotion":emotion})
 
 @app.route('/posts/<int:post_id>', methods=['DELETE'])
@@ -491,7 +495,7 @@ def health():
     db_status = "disconnected"
     try:
         db_conn, _ = ensure_db_connection()
-        if db_conn and db_conn.is_connected():
+        if db_conn and not db_conn.closed:
             db_status = "connected"
     except Exception as e:
         print(f"Health check database error: {e}")
