@@ -12,4 +12,4 @@ COPY . .
 
 #i set in env so auto export na this
 
-CMD ["sh", "-c", "gunicorn app:app --bind 0.0.0.0:$PORT --timeout 300 --workers 1"]
+CMD gunicorn app:app --bind 0.0.0.0:8080 --timeout 300 --workers 1
