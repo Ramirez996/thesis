@@ -55,7 +55,7 @@ CREATE TABLE IF NOT EXISTS depression_results (
     hybrid_risk_score DECIMAL(5,4) NULL,
     risk_level VARCHAR(100) NULL,
     is_high_risk BOOLEAN DEFAULT FALSE,
-    answers_json JSON NOT NULL, 9 answers in JSON
+    answers_json JSON NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
