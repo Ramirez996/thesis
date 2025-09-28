@@ -17,10 +17,11 @@ import json
 
 # ---------------- Flask + CORS ----------------
 app = Flask(__name__)
-CORS(app, 
+CORS(app,
      origins=[
-         "http://localhost:3000", 
-         "http://localhost:5173", 
+         "http://localhost:3000",
+         "http://localhost:5173",
+         "https://thesis-repo-m135.vercel.app",
          "https://*.vercel.app",
          os.getenv("FRONTEND_URL", "*")
      ],
