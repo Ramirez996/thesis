@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import "../testDesign/EatingTest.css";
+import { getApiUrl } from "../config/api";
 
 const questions = [
   { id: 1, text: "I see myself as someone who is reserved.", options: ["Strongly Disagree", "Disagree", "Neutral", "Agree", "Strongly Agree"] },
@@ -63,7 +64,7 @@ const PersonalityTest = () => {
     const normalizedScore = scores.reduce((a, b) => a + b, 0) / (questions.length * 5);
 
     try {
-      const res = await fetch("http://127.0.0.1:5000/bfi10_risk", {
+      const res = await fetch(getApiUrl('BFI10_RISK'), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

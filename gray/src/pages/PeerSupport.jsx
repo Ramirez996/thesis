@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { auth } from '../firebase/firebase';
 import { onAuthStateChanged, signInWithEmailAndPassword } from 'firebase/auth';
 import './PeerSupport.css';
+import { getApiUrl, API_URL } from '../config/api';
 
 const userSpaces = [
     'Community Support',
@@ -47,7 +48,8 @@ const PeerSupport = ({ initialSpace = 'Community Support' }) => {
     useEffect(() => {
         const fetchPosts = async () => {
             try {
-                const res = await fetch(`http://localhost:5000/posts/${activeSpace}`);
+                const endpoint = `${getApiUrl('POSTS')}/${encodeURIComponent(activeSpace)}`;
+                const res = await fetch(endpoint);
                 const data = await res.json();
                 setPosts(prev => ({ ...prev, [activeSpace]: data }));
             } catch (err) {
@@ -78,7 +80,7 @@ const PeerSupport = ({ initialSpace = 'Community Support' }) => {
 
         try {
             // first analyze via /analyze
-            const response = await fetch('http://localhost:5000/analyze', {
+            const response = await fetch(getApiUrl('ANALYZE'), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ text: postInput }),
@@ -91,7 +93,7 @@ const PeerSupport = ({ initialSpace = 'Community Support' }) => {
             }
 
             // then save to backend /posts
-            const saveRes = await fetch("http://localhost:5000/posts", {
+            const saveRes = await fetch(getApiUrl('POSTS'), {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ text: postInput, space: activeSpace, userName, emotion }),
@@ -119,7 +121,7 @@ const PeerSupport = ({ initialSpace = 'Community Support' }) => {
         formData.append('file', csvFile);
 
         try {
-            const response = await fetch('http://localhost:5000/train', {
+            const response = await fetch(getApiUrl('TRAIN'), {
                 method: 'POST',
                 body: formData,
             });
@@ -266,7 +268,7 @@ const PostCard = ({ post, space, posts, setPosts, isAdmin }) => {
     const addComment = async () => {
         if (!comment.trim()) return;
         try {
-            const response = await fetch(`http://localhost:5000/posts/${post.id}/comments`, {
+            const response = await fetch(`${getApiUrl('POSTS')}/${post.id}/comments`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ text: comment }),
@@ -286,7 +288,7 @@ const PostCard = ({ post, space, posts, setPosts, isAdmin }) => {
     // ✅ delete post
     const deletePost = async () => {
         try {
-            await fetch(`http://localhost:5000/posts/${post.id}`, { method: "DELETE" });
+            await fetch(`${getApiUrl('POSTS')}/${post.id}`, { method: "DELETE" });
             setPosts(prev => ({
                 ...prev,
                 [space]: prev[space].filter(p => p.id !== post.id),
@@ -299,7 +301,7 @@ const PostCard = ({ post, space, posts, setPosts, isAdmin }) => {
     // ✅ delete comment
     const deleteComment = async (commentId) => {
         try {
-            await fetch(`http://localhost:5000/comments/${commentId}`, { method: "DELETE" });
+            await fetch(`${API_URL}/comments/${commentId}`, { method: "DELETE" });
             const updatedPosts = posts[space].map(p =>
                 p.id === post.id ? { ...p, comments: p.comments.filter(c => c.id !== commentId) } : p
             );

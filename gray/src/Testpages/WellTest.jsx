@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import "../testDesign/EatingTest.css";
+import { getApiUrl } from "../config/api";
 
 const questions = [
   { id: 1, text: "I have felt cheerful and in good spirits.", options: ["At no time", "Less than half the time", "More than half the time", "Some of the time", "Most of the time", "All of the time"] },
@@ -55,7 +56,7 @@ const WellTest = () => {
 
     // Send data to Flask API
     try {
-      const res = await fetch("http://127.0.0.1:5000/who5_risk", {
+      const res = await fetch(getApiUrl('WHO5_RISK'), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
