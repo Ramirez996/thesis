@@ -24,6 +24,8 @@ CORS(app,
          "http://localhost:3000",
          "http://localhost:5173",
          "https://thesis-repo-m135.vercel.app",
+         "https://mental-health-assessment-pi.vercel.app",
+         "https://clientproduction.vercel.app",
          "https://*.vercel.app",
          os.getenv("FRONTEND_URL", "*")
      ],
@@ -794,6 +796,16 @@ def debug_model():
         }
     
     return jsonify(debug_info)
+
+# ---------------- CORS Preflight Handler ----------------
+@app.before_request
+def handle_preflight():
+    if request.method == "OPTIONS":
+        response = jsonify({"message": "preflight OK"})
+        response.headers.add("Access-Control-Allow-Origin", "*")
+        response.headers.add('Access-Control-Allow-Headers', "*")
+        response.headers.add('Access-Control-Allow-Methods', "*")
+        return response
 
 # ---------------- Analyze Text ----------------
 @app.route('/analyze', methods=['POST'])
