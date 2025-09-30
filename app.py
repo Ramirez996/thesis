@@ -23,7 +23,7 @@ CORS(app,
      origins=[
          "http://localhost:3000",
          "http://localhost:5173",
-         "https://thesis-repo-m135.vercel.app",
+         "https://mental-health-assessment-pi.vercel.app/",
          "https://*.vercel.app",
          os.getenv("FRONTEND_URL", "*")
      ],
