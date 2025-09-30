@@ -33,8 +33,16 @@ CORS(app,
 
 # ---------------- BERT Model ----------------
 MODEL_NAME = "google-bert/bert-base-uncased"
-tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
+tokenizer = None
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+def get_tokenizer():
+    global tokenizer
+    if tokenizer is None:
+        logger.info("Loading tokenizer...")
+        tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
+        logger.info("Tokenizer loaded")
+    return tokenizer
 
 CHECKPOINT_DIR = "checkpoints"
 CHECKPOINT_FILE = os.path.join(CHECKPOINT_DIR, "emotion_classifier_checkpoint.pth")
@@ -43,6 +51,8 @@ os.makedirs(CHECKPOINT_DIR, exist_ok=True)
 # configure basic logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
 logger = logging.getLogger(__name__)
+
+import gc
 
 # ---------------- Checkpoint download (Hugging Face Hub support) ----------------
 try:
@@ -183,7 +193,7 @@ class EmotionDataset(Dataset):
         return len(self.texts)
 
     def __getitem__(self, idx):
-        encoding = tokenizer(self.texts[idx], return_tensors='pt',
+        encoding = get_tokenizer()(self.texts[idx], return_tensors='pt',
                              truncation=True, padding='max_length', max_length=128)
         input_ids = encoding['input_ids'].squeeze(0)
         attention_mask = encoding['attention_mask'].squeeze(0)
@@ -239,6 +249,10 @@ def load_model():
                 model.load_state_dict(checkpoint['model_state_dict'])
                 label_encoder.classes_ = checkpoint['label_encoder_classes']
                 logger.info("Checkpoint loaded successfully: num_labels=%s, device=%s", num_labels, device)
+             #delete natin try 
+                del checkpoint
+                gc.collect()
+                
             except Exception as e:
                 logger.exception("Error initializing model from checkpoint: %s", e)
                 model = None
@@ -255,7 +269,7 @@ def analyze_text(text):
 
     model.eval()
     with torch.no_grad():
-        inputs = tokenizer(text, return_tensors='pt', truncation=True,
+        inputs = get_tokenizer()(text, return_tensors='pt', truncation=True,
                            padding='max_length', max_length=128)
         input_ids = inputs['input_ids'].to(device)
         attention_mask = inputs['attention_mask'].to(device)
@@ -291,7 +305,7 @@ def gad7_risk():
         if bert_model:
             bert_model.eval()
             with torch.no_grad():
-                encoding = tokenizer(text, return_tensors='pt', truncation=True, padding='max_length', max_length=128)
+                encoding = get_tokenizer()(text, return_tensors='pt', truncation=True, padding='max_length', max_length=128)
                 input_ids = encoding['input_ids'].to(device)
                 attention_mask = encoding['attention_mask'].to(device)
                 anomaly_output = bert_model(input_ids, attention_mask, anomaly=True)
@@ -354,7 +368,7 @@ def phq9_risk():
         if bert_model:
             bert_model.eval()
             with torch.no_grad():
-                encoding = tokenizer(text, return_tensors='pt', truncation=True,
+                encoding = get_tokenizer()(text, return_tensors='pt', truncation=True,
                                      padding='max_length', max_length=128)
                 input_ids = encoding['input_ids'].to(device)
                 attention_mask = encoding['attention_mask'].to(device)
@@ -414,7 +428,7 @@ def bfi10_risk():
     if text and bert_model:
         bert_model.eval()
         with torch.no_grad():
-            encoding = tokenizer(text, return_tensors="pt", truncation=True, padding="max_length", max_length=128)
+            encoding = get_tokenizer()(text, return_tensors="pt", truncation=True, padding="max_length", max_length=128)
             input_ids = encoding["input_ids"].to(device)
             attention_mask = encoding["attention_mask"].to(device)
             anomaly_output = bert_model(input_ids, attention_mask, anomaly=True)
@@ -475,7 +489,7 @@ def who5_risk():
     if text and bert_model:
         bert_model.eval()
         with torch.no_grad():
-            encoding = tokenizer(text, return_tensors="pt", truncation=True,
+            encoding = get_tokenizer()(text, return_tensors="pt", truncation=True,
                                  padding="max_length", max_length=128)
             input_ids = encoding["input_ids"].to(device)
             attention_mask = encoding["attention_mask"].to(device)
