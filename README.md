@@ -1,8 +1,7 @@
 ---
 app_file: bert-space/app.py
-sdk: gradio
-title: Thesis Spaces root README
-short_description: Root README that sets the app file for the Space to bert-space/app.py
+title: bert-space
+short_description: Use bert-space/app.py as the Hugging Face Space app entrypoint
 ---
 
-This README exists to instruct Hugging Face Spaces to use `bert-space/app.py` as the app entry point.
+This repository contains multiple projects. The frontmatter above instructs Hugging Face Spaces to run the Flask app located at `bert-space/app.py` so the Space uses the intended entrypoint and dependencies.
