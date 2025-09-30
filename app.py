@@ -15,6 +15,7 @@ import os
 import numpy as np
 import json
 import logging
+import shutil
 
 # ---------------- Flask + CORS ----------------
 app = Flask(__name__)
@@ -108,13 +109,23 @@ def ensure_checkpoint_available():
             # Ensure target directory exists
             os.makedirs(os.path.dirname(CHECKPOINT_FILE), exist_ok=True)
             
-            # move/replace
-            logger.info("Moving from %s to %s", local_path, CHECKPOINT_FILE)
-            os.replace(local_path, CHECKPOINT_FILE)
+            logger.info("Copying from %s to %s", local_path, CHECKPOINT_FILE)
+            shutil.copy2(local_path, CHECKPOINT_FILE)
             
-            # Verify the file was moved successfully
             if not os.path.exists(CHECKPOINT_FILE):
-                raise RuntimeError(f"File move failed - checkpoint not found at {CHECKPOINT_FILE}")
+                raise RuntimeError(f"File copy failed - checkpoint not found at {CHECKPOINT_FILE}")
+        
+            original_size = os.path.getsize(local_path)
+            copied_size = os.path.getsize(CHECKPOINT_FILE)
+            logger.info("File copied successfully: %d bytes (original: %d bytes)", copied_size, original_size)
+            
+            if copied_size != original_size:
+                raise RuntimeError(f"File copy incomplete - size mismatch: {copied_size} != {original_size} check this shiii")
+            try:
+                os.remove(local_path)
+                logger.info("Temporary file removed: %s", local_path)
+            except Exception as e:
+                logger.warning("Failed to remove temporary file %s: %s", local_path, e)
         else:
             # assume http(s) (including presigned s3 link)
             download_file_http(url, CHECKPOINT_FILE)
