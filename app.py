@@ -14,6 +14,7 @@ import psycopg2.extras
 import os
 import numpy as np
 import json
+import logging
 
 # ---------------- Flask + CORS ----------------
 app = Flask(__name__)
@@ -37,6 +38,68 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 CHECKPOINT_DIR = "checkpoints"
 CHECKPOINT_FILE = os.path.join(CHECKPOINT_DIR, "emotion_classifier_checkpoint.pth")
 os.makedirs(CHECKPOINT_DIR, exist_ok=True)
+
+# configure basic logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
+logger = logging.getLogger(__name__)
+
+# ---------------- Checkpoint download (Hugging Face Hub support) ----------------
+try:
+    from huggingface_hub import hf_hub_download
+except Exception:
+    hf_hub_download = None
+
+def download_file_http(url, dest_path):
+    import requests
+    with requests.get(url, stream=True, timeout=60) as r:
+        r.raise_for_status()
+        with open(dest_path, 'wb') as f:
+            for chunk in r.iter_content(chunk_size=8192):
+                if chunk:
+                    f.write(chunk)
+
+def ensure_checkpoint_available():
+    """Ensure the checkpoint file exists locally. If missing, try to download from CHECKPOINT_URL.
+    Supported URL formats:
+      - hf://<repo_id>  (uses huggingface_hub and CHECKPOINT_FILENAME env var)
+      - https://...     (direct HTTPS download / presigned S3 URL)
+    """
+    if os.path.exists(CHECKPOINT_FILE):
+        logger.info("Checkpoint already exists at %s", CHECKPOINT_FILE)
+        return True
+
+    # read a generic env var so you can change provider without editing code
+    url = os.getenv("CHECKPOINT_URL", "")
+    if not url:
+        logger.warning("No CHECKPOINT_URL provided and checkpoint is missing at %s", CHECKPOINT_FILE)
+        return False
+
+    logger.info("Attempting to download checkpoint from %s", url)
+    try:
+        if url.startswith("hf://") or url.startswith("hf:"):
+            if hf_hub_download is None:
+                raise RuntimeError("huggingface_hub is not available in the environment")
+            # repo_id portion after prefix
+            repo_id = url.split("//", 1)[1].lstrip("/")
+            # filename inside the HF repo (optional)
+            filename = os.getenv("CHECKPOINT_FILENAME", os.path.basename(CHECKPOINT_FILE))
+            token = os.getenv("HF_TOKEN")  # updated to use correct env var
+            # hf_hub_download returns path to downloaded file
+            local_path = hf_hub_download(repo_id=repo_id, filename=filename, use_auth_token=token)
+            # move/replace
+            os.replace(local_path, CHECKPOINT_FILE)
+        else:
+            # assume http(s) (including presigned s3 link)
+            download_file_http(url, CHECKPOINT_FILE)
+
+        logger.info("Checkpoint downloaded to %s", CHECKPOINT_FILE)
+        return True
+    except Exception as e:
+        logger.exception("Failed to download checkpoint: %s", e)
+        return False
+
+# Call on startup so Railway can fetch the model into the instance filesystem
+ensure_checkpoint_available()
 
 training_status = {"status": "idle", "epoch": 0, "loss": None}
 model = None
@@ -118,11 +181,18 @@ def load_model():
     global model
     if model is None:
         if os.path.exists(CHECKPOINT_FILE):
-            checkpoint = torch.load(CHECKPOINT_FILE, map_location=device)
+            logger.info(f"Loading checkpoint from %s", CHECKPOINT_FILE)
+            try:
+                # torch.load may raise in newer torch versions if weights-only; allow full load for trusted local file
+                checkpoint = torch.load(CHECKPOINT_FILE, map_location=device, weights_only=False)
+            except TypeError:
+                # older torch versions don't accept weights_only
+                checkpoint = torch.load(CHECKPOINT_FILE, map_location=device)
             num_labels = checkpoint.get('num_labels', len(checkpoint['label_encoder_classes']))
             model = EmotionClassifier(num_labels).to(device)
             model.load_state_dict(checkpoint['model_state_dict'])
             label_encoder.classes_ = checkpoint['label_encoder_classes']
+            logger.info("Checkpoint loaded: num_labels=%s", num_labels)
     return model
 
 def analyze_text(text):
@@ -471,6 +541,7 @@ def train():
             'label_encoder_classes':label_encoder.classes_,
             'num_labels':len(label_encoder.classes_)
         }, CHECKPOINT_FILE)
+        logger.info("Training finished — checkpoint saved to %s", CHECKPOINT_FILE)
 
         training_status["status"]="completed"
         return jsonify({"message":"Training complete","loss":total_loss})
@@ -481,6 +552,38 @@ def train():
 @app.route('/training_status', methods=['GET'])
 def get_training_status():
     return jsonify(training_status)
+
+@app.route("/checkpoint_status", methods=["GET"])
+def checkpoint_status():
+    try:
+        if not os.path.exists(CHECKPOINT_FILE):
+            return jsonify({
+                "exists": False,
+                "message": f"Checkpoint not found at {CHECKPOINT_FILE}"
+            }), 404
+
+        checkpoint = torch.load(CHECKPOINT_FILE, map_location="cpu")
+
+        num_labels = checkpoint.get("num_labels", None)
+        label_classes = checkpoint.get("label_encoder_classes", None)
+
+        return jsonify({
+            "exists": True,
+            "path": CHECKPOINT_FILE,
+            "num_labels": num_labels,
+            "labels_sample": label_classes[:5].tolist() if label_classes is not None else None,
+            "loaded": True,
+            "message": "Checkpoint is available and metadata loaded."
+        })
+
+    except Exception as e:
+        return jsonify({
+            "exists": True,
+            "path": CHECKPOINT_FILE,
+            "loaded": False,
+            "message": str(e)
+        }), 500
+
 
 # ---------------- Health Check ----------------
 @app.route('/', methods=['GET'])
