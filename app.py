@@ -87,12 +87,34 @@ def ensure_checkpoint_available():
             filename = os.getenv("CHECKPOINT_FILENAME", os.path.basename(CHECKPOINT_FILE))
             token = os.getenv("HF_TOKEN")  # updated to use correct env var
             logger.info("Downloading from HF repo: %s, filename: %s", repo_id, filename)
+            logger.info("Target checkpoint file path: %s", CHECKPOINT_FILE)
             try:
                 local_path = hf_hub_download(repo_id=repo_id, filename=filename, token=token)
+                logger.info("Downloaded to temporary path: %s", local_path)
             except TypeError:
+                logger.info("Trying fallback auth parameter")
                 local_path = hf_hub_download(repo_id=repo_id, filename=filename, use_auth_token=token)
+                logger.info("Downloaded to temporary path: %s", local_path)
+            
+            # Verify the downloaded file exists and has content
+            if os.path.exists(local_path):
+                file_size = os.path.getsize(local_path)
+                logger.info("Downloaded file size: %d bytes", file_size)
+                if file_size == 0:
+                    raise RuntimeError("Downloaded file is empty")
+            else:
+                raise RuntimeError(f"Downloaded file not found at {local_path}")
+            
+            # Ensure target directory exists
+            os.makedirs(os.path.dirname(CHECKPOINT_FILE), exist_ok=True)
+            
             # move/replace
+            logger.info("Moving from %s to %s", local_path, CHECKPOINT_FILE)
             os.replace(local_path, CHECKPOINT_FILE)
+            
+            # Verify the file was moved successfully
+            if not os.path.exists(CHECKPOINT_FILE):
+                raise RuntimeError(f"File move failed - checkpoint not found at {CHECKPOINT_FILE}")
         else:
             # assume http(s) (including presigned s3 link)
             download_file_http(url, CHECKPOINT_FILE)
