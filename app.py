@@ -79,13 +79,15 @@ def ensure_checkpoint_available():
         if url.startswith("hf://") or url.startswith("hf:"):
             if hf_hub_download is None:
                 raise RuntimeError("huggingface_hub is not available in the environment")
-            # repo_id portion after prefix
-            repo_id = url.split("//", 1)[1].lstrip("/")
+            if "//" in url:
+                repo_id = url.split("//", 1)[1]
+            else:
+                repo_id = url.split(":", 1)[1].lstrip("/")
             # filename inside the HF repo (optional)
             filename = os.getenv("CHECKPOINT_FILENAME", os.path.basename(CHECKPOINT_FILE))
             token = os.getenv("HF_TOKEN")  # updated to use correct env var
-            # hf_hub_download returns path to downloaded file
-            local_path = hf_hub_download(repo_id=repo_id, filename=filename, use_auth_token=token)
+            logger.info("Downloading from HF repo: %s, filename: %s", repo_id, filename)
+            local_path = hf_hub_download(repo_id=repo_id, filename=filename, token=token)
             # move/replace
             os.replace(local_path, CHECKPOINT_FILE)
         else:
@@ -98,8 +100,7 @@ def ensure_checkpoint_available():
         logger.exception("Failed to download checkpoint: %s", e)
         return False
 
-# Call on startup so Railway can fetch the model into the instance filesystem
-ensure_checkpoint_available()
+
 
 training_status = {"status": "idle", "epoch": 0, "loss": None}
 model = None
@@ -180,19 +181,35 @@ class EmotionClassifier(nn.Module):
 def load_model():
     global model
     if model is None:
+        if not ensure_checkpoint_available():
+            logger.error("Could not ensure checkpoint availability")
+            return None
+            
         if os.path.exists(CHECKPOINT_FILE):
-            logger.info(f"Loading checkpoint from %s", CHECKPOINT_FILE)
+            logger.info("Loading checkpoint from %s", CHECKPOINT_FILE)
             try:
                 # torch.load may raise in newer torch versions if weights-only; allow full load for trusted local file
                 checkpoint = torch.load(CHECKPOINT_FILE, map_location=device, weights_only=False)
             except TypeError:
                 # older torch versions don't accept weights_only
                 checkpoint = torch.load(CHECKPOINT_FILE, map_location=device)
-            num_labels = checkpoint.get('num_labels', len(checkpoint['label_encoder_classes']))
-            model = EmotionClassifier(num_labels).to(device)
-            model.load_state_dict(checkpoint['model_state_dict'])
-            label_encoder.classes_ = checkpoint['label_encoder_classes']
-            logger.info("Checkpoint loaded: num_labels=%s", num_labels)
+            except Exception as e:
+                logger.exception("Error loading checkpoint: %s", e)
+                return None
+                
+            try:
+                num_labels = checkpoint.get('num_labels', len(checkpoint['label_encoder_classes']))
+                model = EmotionClassifier(num_labels).to(device)
+                model.load_state_dict(checkpoint['model_state_dict'])
+                label_encoder.classes_ = checkpoint['label_encoder_classes']
+                logger.info("Checkpoint loaded successfully: num_labels=%s, device=%s", num_labels, device)
+            except Exception as e:
+                logger.exception("Error initializing model from checkpoint: %s", e)
+                model = None
+                return None
+        else:
+            logger.error("Checkpoint file does not exist at %s after download attempt", CHECKPOINT_FILE)
+            return None
     return model
 
 def analyze_text(text):
@@ -604,10 +621,25 @@ def health():
     except Exception as e:
         print(f"Health check database error: {e}")
     
+    model_status = {
+        "loaded": model is not None,
+        "checkpoint_exists": os.path.exists(CHECKPOINT_FILE),
+        "checkpoint_url": os.getenv("CHECKPOINT_URL", "Not set"),
+        "hf_token_set": bool(os.getenv("HF_TOKEN")),
+    }
+    if not model_status["loaded"]:
+        try:
+            loaded_model = load_model()
+            model_status["loaded"] = loaded_model is not None
+            model_status["load_attempt"] = "success" if loaded_model else "failed"
+        except Exception as e:
+            model_status["load_attempt"] = f"error: {str(e)}"
+    
     return jsonify({
         "status": "healthy",
         "database": db_status,
-        "model_loaded": model is not None,
+        "model_loaded": model_status["loaded"],
+        "model_status": model_status,
         "environment": os.getenv("RAILWAY_ENVIRONMENT", "development")
     })
 
