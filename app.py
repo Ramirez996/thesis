@@ -87,7 +87,10 @@ def ensure_checkpoint_available():
             filename = os.getenv("CHECKPOINT_FILENAME", os.path.basename(CHECKPOINT_FILE))
             token = os.getenv("HF_TOKEN")  # updated to use correct env var
             logger.info("Downloading from HF repo: %s, filename: %s", repo_id, filename)
-            local_path = hf_hub_download(repo_id=repo_id, filename=filename, token=token)
+            try:
+                local_path = hf_hub_download(repo_id=repo_id, filename=filename, token=token)
+            except TypeError:
+                local_path = hf_hub_download(repo_id=repo_id, filename=filename, use_auth_token=token)
             # move/replace
             os.replace(local_path, CHECKPOINT_FILE)
         else:
@@ -709,6 +712,41 @@ def test_dataset():
             "error": str(e),
             "error_type": type(e).__name__
         })
+
+@app.route('/debug-model', methods=['GET'])
+def debug_model():
+    """Debug endpoint for model loading troubleshooting"""
+    debug_info = {
+        "environment_vars": {
+            "CHECKPOINT_URL": os.getenv("CHECKPOINT_URL"),
+            "CHECKPOINT_FILENAME": os.getenv("CHECKPOINT_FILENAME"),
+            "HF_TOKEN_SET": bool(os.getenv("HF_TOKEN")),
+        },
+        "checkpoint_file_path": CHECKPOINT_FILE,
+        "checkpoint_exists": os.path.exists(CHECKPOINT_FILE),
+        "model_loaded": model is not None,
+        "huggingface_hub_available": hf_hub_download is not None,
+        "device": str(device)
+    }
+    try:
+        download_result = ensure_checkpoint_available()
+        debug_info["download_attempt"] = {
+            "success": download_result,
+            "checkpoint_exists_after": os.path.exists(CHECKPOINT_FILE)
+        }
+        if os.path.exists(CHECKPOINT_FILE):
+            stat_info = os.stat(CHECKPOINT_FILE)
+            debug_info["checkpoint_stats"] = {
+                "size_bytes": stat_info.st_size,
+                "readable": os.access(CHECKPOINT_FILE, os.R_OK)
+            }
+    except Exception as e:
+        debug_info["download_attempt"] = {
+            "error": str(e),
+            "error_type": type(e).__name__
+        }
+    
+    return jsonify(debug_info)
 
 # ---------------- Analyze Text ----------------
 @app.route('/analyze', methods=['POST'])
