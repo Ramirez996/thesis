@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import "../testDesign/EatingTest.css";
 import Chatbot from "../pages/Chatbot";
+import { getApiUrl } from "../config/api";
 
 const questions = [
   { id: 1, text: "Little interest or pleasure in doing things?", options: ["Not at all", "Several days", "More than half the days", "Nearly every day"] },
@@ -57,7 +58,7 @@ const DepressionTest = () => {
     }
 
     try {
-      const response = await fetch("http://127.0.0.1:5000/phq9_risk", {
+      const response = await fetch(getApiUrl('PHQ9_RISK'), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ answers: features, text: "User completed PHQ-9 test" }),
