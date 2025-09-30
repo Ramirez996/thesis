@@ -347,15 +347,15 @@ def gad7_risk():
 
     anomaly_score = 0.0
     if text:
-        bert_model = load_model()
-        if bert_model:
-            bert_model.eval()
-            with torch.no_grad():
-                encoding = get_tokenizer()(text, return_tensors='pt', truncation=True, padding='max_length', max_length=128)
-                input_ids = encoding['input_ids'].to(device)
-                attention_mask = encoding['attention_mask'].to(device)
-                anomaly_output = bert_model(input_ids, attention_mask, anomaly=True)
-                anomaly_score = anomaly_output["anomaly_score"].item()
+        try:
+            emotion_result = analyze_text(text)
+            if emotion_result.get("is_negative", False):
+                anomaly_score = emotion_result.get("confidence", 0.5)
+            else:
+                anomaly_score = 0.1  # Low anomaly for positive emotions
+        except Exception as e:
+            print(f"Error analyzing text for GAD-7: {e}")
+            anomaly_score = 0.0
 
     hybrid_score = (probability + anomaly_score)/2
     risk_level = "High" if hybrid_score >= 0.5 else "Low"
@@ -408,18 +408,20 @@ def phq9_risk():
     probability = 1/(1+np.exp(-logit))
     risk_level = "High" if probability>=0.5 else "Low"
 
+
     anomaly_score = 0.0
     if text:
-        bert_model = load_model()
-        if bert_model:
-            bert_model.eval()
-            with torch.no_grad():
-                encoding = get_tokenizer()(text, return_tensors='pt', truncation=True,
-                                     padding='max_length', max_length=128)
-                input_ids = encoding['input_ids'].to(device)
-                attention_mask = encoding['attention_mask'].to(device)
-                anomaly_output = bert_model(input_ids, attention_mask, anomaly=True)
-                anomaly_score = anomaly_output["anomaly_score"].item()
+
+        try:
+            emotion_result = analyze_text(text)
+
+            if emotion_result.get("is_negative", False):
+                anomaly_score = emotion_result.get("confidence", 0.5)
+            else:
+                anomaly_score = 0.1  # Low anomaly for positive emotions
+        except Exception as e:
+            print(f"Error analyzing text for PHQ-9: {e}")
+            anomaly_score = 0.0
 
     hybrid_score = (probability+anomaly_score)/2
 
@@ -470,15 +472,16 @@ def bfi10_risk():
     conscientiousness = traits.get("Conscientiousness", 0)
 
     bert_anomaly_score = 0.0
-    bert_model = load_model()
-    if text and bert_model:
-        bert_model.eval()
-        with torch.no_grad():
-            encoding = get_tokenizer()(text, return_tensors="pt", truncation=True, padding="max_length", max_length=128)
-            input_ids = encoding["input_ids"].to(device)
-            attention_mask = encoding["attention_mask"].to(device)
-            anomaly_output = bert_model(input_ids, attention_mask, anomaly=True)
-            bert_anomaly_score = anomaly_output["anomaly_score"].item()
+    if text:
+        try:
+            emotion_result = analyze_text(text)
+            if emotion_result.get("is_negative", False):
+                bert_anomaly_score = emotion_result.get("confidence", 0.5)
+            else:
+                bert_anomaly_score = 0.1  
+        except Exception as e:
+            print(f"Error analyzing text for BFI-10: {e}")
+            bert_anomaly_score = 0.0
 
     if lr_score is None:
         lr_score = 0.0
@@ -531,16 +534,16 @@ def who5_risk():
 
     bert_score = 0.0
     text = data.get("text", " ".join(map(str, answers_list)))
-    bert_model = load_model()
-    if text and bert_model:
-        bert_model.eval()
-        with torch.no_grad():
-            encoding = get_tokenizer()(text, return_tensors="pt", truncation=True,
-                                 padding="max_length", max_length=128)
-            input_ids = encoding["input_ids"].to(device)
-            attention_mask = encoding["attention_mask"].to(device)
-            anomaly_output = bert_model(input_ids, attention_mask, anomaly=True)
-            bert_score = anomaly_output["anomaly_score"].item()
+    if text:
+        try:
+            emotion_result = analyze_text(text)
+            if emotion_result.get("is_negative", False):
+                bert_score = emotion_result.get("confidence", 0.5)
+            else:
+                bert_score = 0.1
+        except Exception as e:
+            print(f"Error analyzing text for WHO-5: {e}")
+            bert_score = 0.0
 
     hybrid_score = (lr_score + bert_score) / 2
     risk_level = "High" if hybrid_score >= 0.5 else "Low"
