@@ -1,5 +1,6 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+import requests
 from transformers import AutoTokenizer, AutoModel
 import torch
 import torch.nn as nn
@@ -227,62 +228,105 @@ class EmotionClassifier(nn.Module):
 
 # ---------------- Helper Functions ----------------
 def load_model():
-    global model
-    if model is None:
-        if not ensure_checkpoint_available():
-            logger.error("Could not ensure checkpoint availability")
-            return None
-            
-        if os.path.exists(CHECKPOINT_FILE):
-            logger.info("Loading checkpoint from %s", CHECKPOINT_FILE)
-            try:
-                # torch.load may raise in newer torch versions if weights-only; allow full load for trusted local file
-                checkpoint = torch.load(CHECKPOINT_FILE, map_location=device, weights_only=False)
-            except TypeError:
-                # older torch versions don't accept weights_only
-                checkpoint = torch.load(CHECKPOINT_FILE, map_location=device)
-            except Exception as e:
-                logger.exception("Error loading checkpoint: %s", e)
-                return None
-                
-            try:
-                num_labels = checkpoint.get('num_labels', len(checkpoint['label_encoder_classes']))
-                model = EmotionClassifier(num_labels).to(device)
-                model.load_state_dict(checkpoint['model_state_dict'])
-                label_encoder.classes_ = checkpoint['label_encoder_classes']
-                logger.info("Checkpoint loaded successfully: num_labels=%s, device=%s", num_labels, device)
-             #delete natin try 
-                del checkpoint
-                gc.collect()
-                
-            except Exception as e:
-                logger.exception("Error initializing model from checkpoint: %s", e)
-                model = None
-                return None
-        else:
-            logger.error("Checkpoint file does not exist at %s after download attempt", CHECKPOINT_FILE)
-            return None
-    return model
+    """DISABLED: Model loading moved to HF Spaces to prevent OOM"""
+    logger.info("Model loading disabled - using HF Space API instead")
+    return None
+
+# # using hf now
+# def load_model():
+#     global model
+#     if model is None:
+#         if not ensure_checkpoint_available():
+#             logger.error("Could not ensure checkpoint availability")
+#             return None
+#             
+#         if os.path.exists(CHECKPOINT_FILE):
+#             logger.info("Loading checkpoint from %s", CHECKPOINT_FILE)
+#             try:
+#                 # torch.load may raise in newer torch versions if weights-only; allow full load for trusted local file
+#                 checkpoint = torch.load(CHECKPOINT_FILE, map_location=device, weights_only=False)
+#             except TypeError:
+#                 # older torch versions don't accept weights_only
+#                 checkpoint = torch.load(CHECKPOINT_FILE, map_location=device)
+#             except Exception as e:
+#                 logger.exception("Error loading checkpoint: %s", e)
+#                 return None
+#                 
+#             try:
+#                 num_labels = checkpoint.get('num_labels', len(checkpoint['label_encoder_classes']))
+#                 model = EmotionClassifier(num_labels).to(device)
+#                 model.load_state_dict(checkpoint['model_state_dict'])
+#                 label_encoder.classes_ = checkpoint['label_encoder_classes']
+#                 logger.info("Checkpoint loaded successfully: num_labels=%s, device=%s", num_labels, device)
+#              #delete natin try 
+#                 del checkpoint
+#                 gc.collect()
+#                 
+#             except Exception as e:
+#                 logger.exception("Error initializing model from checkpoint: %s", e)
+#                 model = None
+#                 return None
+#         else:
+#             logger.error("Checkpoint file does not exist at %s after download attempt", CHECKPOINT_FILE)
+#             return None
+#     return model
 
 def analyze_text(text):
-    model = load_model()
-    if model is None:
-        return {"label": "neutral"}
-
-    model.eval()
-    with torch.no_grad():
-        inputs = get_tokenizer()(text, return_tensors='pt', truncation=True,
-                           padding='max_length', max_length=128)
-        input_ids = inputs['input_ids'].to(device)
-        attention_mask = inputs['attention_mask'].to(device)
-
-        output = model(input_ids=input_ids, attention_mask=attention_mask)
-        logits = output['logits']
-        probs = F.softmax(logits, dim=-1)
-        top_prob, top_idx = torch.max(probs, dim=1)
-        predicted_label = label_encoder.inverse_transform([top_idx.item()])[0]
-
-    return {"label": predicted_label, "score": round(top_prob.item(), 4)}
+    """Analyze emotion using HF Space API or simple fallback"""
+    if not text or not text.strip():
+        return {"label": "neutral", "is_negative": False}
+    
+    try:
+        hf_space_url = "https://jeffrey996-bert-space.hf.space/analyze"
+        response = requests.post(
+            hf_space_url,
+            json={"text": text},
+            timeout=15
+        )
+        
+        if response.status_code == 200:
+            result = response.json()
+            return {
+                "label": result.get("label", "neutral"),
+                "is_negative": result.get("is_negative", False),
+                "confidence": result.get("confidence", 0.8),
+                "score": result.get("confidence", 0.8)  
+            }
+        else:
+            print(f"HF Space API returned status {response.status_code}")
+    except Exception as e:
+        print(f"HF Space API error: {e}")
+    
+    text_lower = text.lower()
+    
+    emotions = {
+        "joy": ["happy", "great", "awesome", "wonderful", "amazing", "excited", "love", "good", "best", "fantastic", "glad", "excellent", "perfect"],
+        "sadness": ["sad", "down", "depressed", "crying", "hurt", "broken", "lonely", "miss", "lost", "disappointed", "upset", "terrible"],
+        "anger": ["angry", "mad", "furious", "hate", "annoyed", "frustrated", "pissed", "rage", "irritated", "disgusted"],
+        "fear": ["scared", "afraid", "worried", "anxious", "nervous", "terrified", "panic", "frightened", "concerned"],
+        "surprise": ["wow", "surprised", "shocked", "incredible", "unbelievable", "amazing"],
+        "neutral": ["okay", "fine", "normal", "usual", "regular"]
+    }
+    
+    scores = {emotion: 0 for emotion in emotions}
+    for emotion, keywords in emotions.items():
+        for keyword in keywords:
+            if keyword in text_lower:
+                scores[emotion] += 1
+    
+    max_emotion = max(scores, key=scores.get)
+    if scores[max_emotion] == 0:
+        max_emotion = "neutral"
+    
+    negative_emotions = ["sadness", "anger", "fear"]
+    is_negative = max_emotion in negative_emotions
+    
+    return {
+        "label": max_emotion,
+        "is_negative": is_negative,
+        "confidence": 0.7 if scores[max_emotion] > 0 else 0.5,
+        "score": 0.7 if scores[max_emotion] > 0 else 0.5  # For backward compatibility
+    }
 
 # ---------------- GAD-7 / Anxiety ----------------
 GAD7_WEIGHTS = np.array([0.5,0.7,0.6,0.4,0.6,0.5,0.8])
