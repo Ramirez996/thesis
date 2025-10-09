@@ -36,10 +36,10 @@ const DepressionTest = () => {
   const [result, setResult] = useState(null);
   const [score, setScore] = useState(0);
   const [hybridRisk, setHybridRisk] = useState(null);
-  const [isChatbotVisible, setIsChatbotVisible] = useState(false);
-  const chatbotButtonRef = useRef(null);
+  const [showChatbot, setShowChatbot] = useState(false);
 
-  const handleOptionSelect = (i, option) => setAnswers(prev => ({ ...prev, [i]: option }));
+  const handleOptionSelect = (i, option) =>
+    setAnswers((prev) => ({ ...prev, [i]: option }));
 
   const handleSubmit = async () => {
     if (Object.keys(answers).length < questions.length) {
@@ -50,15 +50,15 @@ const DepressionTest = () => {
     const features = questions.map((_, i) => optionValues[answers[i]]);
     const totalScore = features.reduce((sum, val) => sum + val, 0);
     setScore(totalScore);
+
     const evaluation = getDepressionResult(totalScore);
     setResult(evaluation);
 
-    if (evaluation.result.startsWith("Severe") || evaluation.result.startsWith("Moderately Severe")) {
-      setIsChatbotVisible(true);
-    }
+    // Automatically show chatbot after submit
+    setShowChatbot(true);
 
     try {
-      const response = await fetch(getApiUrl('PHQ9_RISK'), {
+      const response = await fetch(getApiUrl("PHQ9_RISK"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ answers: features, text: "User completed PHQ-9 test" }),
@@ -72,22 +72,6 @@ const DepressionTest = () => {
     setShowResult(true);
   };
 
-  const toggleChatbot = () => setIsChatbotVisible(prev => !prev);
-
-  useEffect(() => {
-    const button = chatbotButtonRef.current;
-    if (!button) return;
-
-    let isDragging = false, offsetX = 0, offsetY = 0;
-    const onMouseDown = (e) => { isDragging = true; offsetX = e.clientX - button.getBoundingClientRect().left; offsetY = e.clientY - button.getBoundingClientRect().top; button.style.transition = "none"; };
-    const onMouseMove = (e) => { if (isDragging) { button.style.left = `${e.clientX - offsetX}px`; button.style.top = `${e.clientY - offsetY}px`; button.style.bottom = "auto"; button.style.right = "auto"; button.style.position = "fixed"; }};
-    const onMouseUp = () => { isDragging = false; button.style.transition = ""; };
-    button.addEventListener("mousedown", onMouseDown);
-    document.addEventListener("mousemove", onMouseMove);
-    document.addEventListener("mouseup", onMouseUp);
-    return () => { button.removeEventListener("mousedown", onMouseDown); document.removeEventListener("mousemove", onMouseMove); document.removeEventListener("mouseup", onMouseUp); };
-  }, []);
-
   return (
     <div className="test-container">
       {!showResult ? (
@@ -95,48 +79,81 @@ const DepressionTest = () => {
           <h1>Depression Test (PHQ-9)</h1>
           {questions.map((q, i) => (
             <div key={q.id} className="question-item">
-              <p>{i+1}. {q.text}</p>
+              <p>
+                {i + 1}. {q.text}
+              </p>
               <div className="button-options">
-                {q.options.map(opt => (
-                  <button key={opt} onClick={() => handleOptionSelect(i,opt)} className={`option-button ${answers[i]===opt?"selected":""}`}>{opt}</button>
+                {q.options.map((opt) => (
+                  <button
+                    key={opt}
+                    onClick={() => handleOptionSelect(i, opt)}
+                    className={`option-button ${
+                      answers[i] === opt ? "selected" : ""
+                    }`}
+                  >
+                    {opt}
+                  </button>
                 ))}
               </div>
             </div>
           ))}
-          <button onClick={handleSubmit} className="submit-button">SUBMIT</button>
-          <div className="test-source">
-            <h2>Source:</h2>
-            <p>
-              Developed by Drs. Robert L. Spitzer, Janet B.W. Williams, Kurt Kroenke and colleagues, with an educational grant from Pfizer Inc.
-            </p>
-            <a href="https://www.apa.org/depression-guideline/patient-health-questionnaire.pdf" target="_blank" rel="noopener noreferrer">
-              https://www.apa.org/depression-guideline/patient-health-questionnaire.pdf
-            </a>
-            <p><strong>Please note:</strong> Online screening tools are not diagnostic instruments. You are encouraged to share your results with a physician or healthcare provider.</p>
-          </div>
+          <button onClick={handleSubmit} className="submit-button">
+            SUBMIT
+          </button>
         </div>
       ) : (
         <div className="result-section">
           <h2>Your Result:</h2>
-          <p><strong>Score:</strong> {score} / 27</p>
-          <p><strong>{result.result}</strong></p>
+          <p>
+            <strong>Score:</strong> {score} / 27
+          </p>
+          <p>
+            <strong>{result.result}</strong>
+          </p>
           <p>{result.description}</p>
 
           {hybridRisk && (
-            <div style={{marginTop:"2rem"}}>
+            <div style={{ marginTop: "2rem" }}>
               <h3>Hybrid Risk Analysis</h3>
-              <p><strong>LR Score:</strong> {hybridRisk.lr_score}</p>
-              <p><strong>BERT Score:</strong> {hybridRisk.bert_score}</p>
-              <p><strong>Hybrid Risk Score:</strong> {hybridRisk.hybrid_risk_score}</p>
-              <p><strong>Risk Level:</strong> {hybridRisk.risk_level}</p>
+              <p>
+                <strong>LR Score:</strong> {hybridRisk.lr_score}
+              </p>
+              <p>
+                <strong>BERT Score:</strong> {hybridRisk.bert_score}
+              </p>
+              <p>
+                <strong>Hybrid Risk Score:</strong> {hybridRisk.hybrid_risk_score}
+              </p>
+              <p>
+                <strong>Risk Level:</strong> {hybridRisk.risk_level}
+              </p>
             </div>
           )}
 
           <h3>Your Answers:</h3>
-          <ul>{questions.map((q,i)=><li key={q.id}><strong>{i+1}. {q.text}</strong><br/><span style={{color:"#048bb8"}}>Your answer: {answers[i]}</span></li>)}</ul>
+          <ul>
+            {questions.map((q, i) => (
+              <li key={q.id}>
+                <strong>
+                  {i + 1}. {q.text}
+                </strong>
+                <br />
+                <span style={{ color: "#048bb8" }}>
+                  Your answer: {answers[i]}
+                </span>
+              </li>
+            ))}
+          </ul>
 
-          {showResult && <button onClick={toggleChatbot} ref={chatbotButtonRef} className="footer-button">{isChatbotVisible?"Hide Chatbot":"Open Chatbot"}</button>}
-          {isChatbotVisible && <div className="chatbot-wrapper"><Chatbot severeAlert={result?.result.startsWith("Severe")} /></div>}
+          {/*Chatbot shows automatically after test submission */}
+          {showChatbot && (
+            <div className="chatbot-icon-wrapper">
+              <Chatbot
+                combinedScore={score}
+                classification={result.result}
+              />
+            </div>
+          )}
         </div>
       )}
     </div>

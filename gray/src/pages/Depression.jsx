@@ -1,6 +1,8 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import "./anxiety.css"; 
+import "./anxiety.css";
+import Chatbot from "./Chatbot.jsx"; 
+
 const Depression = () => {
   const navigate = useNavigate();
 
@@ -43,7 +45,11 @@ const Depression = () => {
         <p>
           <em>Please answer honestly and based on your recent experience.</em>
         </p>
-        <button className="start-test-btn" onClick={() => navigate("/depression-test")}>
+
+        <button
+          className="start-test-btn"
+          onClick={() => navigate("/depression-test")}
+        >
           Start Test
         </button>
       </div>

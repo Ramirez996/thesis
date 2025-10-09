@@ -152,4 +152,47 @@
     text-decoration: underline;
   }
   
-  
+  /* === Animations === */
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes fadeOut {
+  from { opacity: 1; transform: scale(1); }
+  to { opacity: 0; transform: scale(0.95); }
+}
+
+/* Smooth modal appearance */
+.modal-overlay.fullscreen {
+  animation: fadeIn 0.3s ease forwards;
+}
+
+/* Animate closing */
+.modal-overlay.fullscreen.closing {
+  animation: fadeOut 0.25s ease forwards;
+}
+
+/* Subtle hover feedback */
+.login-form input:hover {
+  border-color: #1877f2;
+  box-shadow: 0 0 5px rgba(24, 119, 242, 0.3);
+}
+
+.login-form button:active {
+  transform: scale(0.97);
+}
+
+.auth-message {
+  font-size: 0.95rem;
+  margin-top: 10px;
+  text-align: center;
+}
+
+.auth-success {
+  color: #28a745;
+}
+
+.auth-error {
+  color: #dc3545;
+}

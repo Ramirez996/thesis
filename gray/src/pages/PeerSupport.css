@@ -217,6 +217,7 @@
 .close-modal-btn:hover {
   background-color: #c53030;
 }
+
 .sentiment {
   margin-left: 10px;
   font-weight: bold;
@@ -244,10 +245,9 @@
   font-weight: bold;
 }
 
-/* Add this to style the poster's name */
 .poster-name {
   font-weight: bold;
-  color: #4CAF50; /* You can choose a color that fits your design */
+  color: #4CAF50;
   margin-right: 5px;
 }
 
