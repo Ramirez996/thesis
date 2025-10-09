@@ -17,7 +17,7 @@ function Chatbot({ combinedScore, classification }) {
       let adviceText = "";
       if (classification.toLowerCase().includes("severe")) {
         adviceText =
-          "It seems your symptoms are on the higher side. I encourage you to reach out to a mental health professional or someone you trust. You’re not alone 💙";
+          "It seems your symptoms are on the higher side. I encourage you to reach out to a mental health professional or someone you trust. You’re not alone, and support is available.";
       } else if (classification.toLowerCase().includes("moderate")) {
         adviceText =
           "You may be experiencing moderate symptoms. Try relaxation, journaling, or talking to a trusted friend — it can help a lot!";
@@ -40,7 +40,7 @@ function Chatbot({ combinedScore, classification }) {
         <p className="chatbot-text">{adviceMessage}</p>
       </div>
       <div className="chatbot-icon">
-        💬
+        🤖
       </div>
     </div>
   );

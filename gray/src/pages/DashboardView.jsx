@@ -183,21 +183,19 @@ const DashboardView = () => {
         </div>
       )}
 
-      {/* Chatbot Toggle Button */}
-      <button
-        onClick={toggleChatbot}
+      {/* Static Chatbot Icon (not clickable) */}
+      <div
         ref={chatbotButtonRef}
-        className="Chatbot-toggle-button"
+        className="Chatbot-toggle-button static-icon"
+        title="AI Chatbot (shows your test results)"
       >
-        {isChatbotVisible ? " 🤖 " : " 🤖 "}
-      </button>
+        🤖
+      </div>
 
-      {/* Chatbot Component */}
-      {isChatbotVisible && (
-        <div className="chatbot-wrapper">
-          <Chatbot />
-        </div>
-      )}
+      {/* Chatbot Component (appears only after test results are set in test pages) */}
+      <div className="chatbot-wrapper">
+        <Chatbot />
+      </div>
     </div>
   );
 };
