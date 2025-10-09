@@ -100,6 +100,16 @@ const DepressionTest = () => {
           <button onClick={handleSubmit} className="submit-button">
             SUBMIT
           </button>
+          <div className="test-source">
+            <h2>Source:</h2>
+            <p>
+              Developed by Drs. Robert L. Spitzer, Janet B.W. Williams, Kurt Kroenke and colleagues, with an educational grant from Pfizer Inc.
+            </p>
+            <a href="https://www.apa.org/depression-guideline/patient-health-questionnaire.pdf" target="_blank" rel="noopener noreferrer">
+              https://www.apa.org/depression-guideline/patient-health-questionnaire.pdf
+            </a>
+            <p><strong>Please note:</strong> Online screening tools are not diagnostic instruments. You are encouraged to share your results with a physician or healthcare provider.</p>
+          </div>
         </div>
       ) : (
         <div className="result-section">
