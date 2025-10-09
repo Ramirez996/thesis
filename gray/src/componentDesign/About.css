@@ -1,77 +1,86 @@
 .abouts {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: space-between;
-    align-items: stretch;
-    gap: 9rem;
-    padding: 2rem;
-    margin: 0 auto;
-    max-width: 120rem;
-  }
-  
-  /* Shared base style for all about cards */
-  .about-conditions {
-    flex: 1 1 30%;
-    padding: 2rem;
-    
-    min-width: 280px;
-  }
-  
-  
-  /* === Individual Card Styles === */
-  
-  
-  .about-conditions {
-    
-    margin-bottom: 6rem;
-    background: #476da56b;
-    color: #444;
-    border-radius: 30px 30px 30px 30px;
-  }
-  
-  /* Headings */
-  .about-conditions h2 {
-    text-align: center;
-    margin-bottom: 1rem;
-    font-size: 1.8rem;
-  }
-  
-  /* Paragraph Text */
-  .about-conditions p {
-    font-size: 1.1rem;
-    line-height: 1.6;
-    text-align: justify;
-  }
-  
-  .conditions-list {
-    list-style: none;
-    padding: 0;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem 1rem;
-    font-size: 0.95rem;
-    margin-top: 10%;
-    font-weight: bold;
-  }
-  
-  .conditions-list li {
-    margin-left: 20px;
-    padding-top: 6px;
-    display: inline;
-    color: rgb(16, 46, 63);
-    border-right: 1.7px solid #0077b6;
-    padding-right: 1rem;
+  margin: 80px auto;
+  padding: 40px;
+  max-width: 1100px;
+  text-align: center;
+  animation: fadeIn 0.8s ease-in-out;
+}
+
+.about-header h2 {
+  font-size: 2rem;
+  color: #2b3a55;
+  margin-bottom: 10px;
+  letter-spacing: 1px;
+}
+
+.about-header p {
+  color: #555;
+  font-size: 1rem;
+  max-width: 700px;
+  margin: 0 auto 40px;
+  line-height: 1.6;
+}
+
+/* Grid Layout */
+.conditions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 25px;
+  justify-items: center;
+  padding: 0 20px;
+}
+
+/* Glassmorphism Card Style */
+.condition-card {
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: 20px;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+  padding: 25px 20px;
+  text-decoration: none;
+  color: #2b3a55;
+  transition: all 0.3s ease;
+  width: 100%;
+  max-width: 260px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.condition-card:hover {
+  transform: translateY(-8px) scale(1.02);
+  box-shadow: 0 12px 25px rgba(33, 150, 243, 0.3);
+  border-color: rgba(33, 150, 243, 0.4);
+  background: rgba(255, 255, 255, 0.35);
+}
+
+.condition-content h3 {
+  font-size: 1.3rem;
+  margin-bottom: 8px;
+  color: #1e2a3a;
+}
+
+.condition-content p {
+  color: #048bb8;
+  font-weight: 500;
+  font-size: 0.95rem;
+}
+
+/* Entrance Animation */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(15px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .about-header h2 {
+    font-size: 1.6rem;
   }
 
-  
-  /* Responsive Fixes */
-  @media screen and (max-width: 768px) {
-    .abouts {
-      flex-direction: column;
-      align-items: center;
-    }
-    .about-conditions {
-      width: 90%;
-    }
+  .condition-card {
+    max-width: 100%;
   }
-  
+}

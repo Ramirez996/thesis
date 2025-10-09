@@ -14,22 +14,29 @@ const About = () => {
 
   return (
     <div className="abouts">
-      {/* Mental Health Conditions */}
-      <div className="about-conditions">
+      <div className="about-header">
         <h2>Learn About Mental Health Conditions</h2>
-        <ul className="conditions-list">
-          {conditions.map((condition, index) => (
-            <li key={index}>
-              <a
-                href={condition.link}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                {condition.name}
-              </a>
-            </li>
-          ))}
-        </ul>
+        <p>
+          Understanding different mental health conditions is an important step toward awareness and recovery. 
+          Click a topic below to explore trusted medical resources.
+        </p>
+      </div>
+
+      <div className="conditions-grid">
+        {conditions.map((condition, index) => (
+          <a
+            key={index}
+            href={condition.link}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="condition-card"
+          >
+            <div className="condition-content">
+              <h3>{condition.name}</h3>
+              <p>Read more →</p>
+            </div>
+          </a>
+        ))}
       </div>
     </div>
   );
