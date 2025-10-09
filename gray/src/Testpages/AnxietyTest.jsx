@@ -62,36 +62,38 @@ const AnxietyTest = () => {
 
       // Interpret probability from LR
       const prob = data.lr_score;
-      let anxietyResult;
-      if (prob >= 0.75) {
-        anxietyResult = {
-          result: "Severe Anxiety – Consider professional help.",
-          description: "Your score suggests severe anxiety. Please consult a professional."
-        };
-      } else if (prob >= 0.5) {
-        anxietyResult = {
-          result: "Moderate Anxiety – Keep monitoring.",
-          description: "Your score suggests moderate anxiety."
-        };
-      } else if (prob >= 0.25) {
-        anxietyResult = {
-          result: "Mild Anxiety – Be mindful of your well-being.",
-          description: "Your score suggests mild anxiety."
-        };
-      } else {
-        anxietyResult = {
-          result: "Minimal Anxiety – Keep taking care of yourself!",
-          description: "Your score indicates minimal anxiety."
-        };
-      }
+      // Interpret severity using STANDARD GAD-7 RAW SCORE (totalScore)
+      let anxietyResult;
+      
+      if (totalScore >= 15) { // Standard Severe: 15-21
+        anxietyResult = {
+          result: "Severe Anxiety – Consider professional help.",
+          description: "Your score suggests severe anxiety. Please consult a professional."
+        };
+      } else if (totalScore >= 10) { // Standard Moderate: 10-14
+        anxietyResult = {
+          result: "Moderate Anxiety – Keep monitoring.",
+          description: "Your score suggests moderate anxiety."
+        };
+      } else if (totalScore >= 5) { // Standard Mild: 5-9
+        anxietyResult = {
+          result: "Mild Anxiety – Be mindful of your well-being.",
+          description: "Your score suggests mild anxiety."
+        };
+      } else { // Standard Minimal: 0-4
+        anxietyResult = {
+          result: "Minimal Anxiety – Keep taking care of yourself!",
+          description: "Your score indicates minimal anxiety."
+        };
+      }
 
-      setResult(anxietyResult);
-      setShowResult(true);
+      setResult(anxietyResult);
+      setShowResult(true);
 
-      // Auto-open chatbot if severe anxiety
-      if (anxietyResult.result.startsWith("Severe Anxiety")) {
-        setIsChatbotVisible(true);
-      }
+      // Auto-open chatbot based on the standard classification
+      if (anxietyResult.result.startsWith("Severe Anxiety")) {
+        setIsChatbotVisible(true);
+      }
 
     } catch (error) {
       console.error("Error fetching hybrid risk:", error);
@@ -215,7 +217,7 @@ const AnxietyTest = () => {
           </ul>
         </div>
       )}
-      
+
       {/* MODIFIED BLOCK in AnxietyTest.jsx */}
       {isChatbotVisible && (
         <div className="chatbot-wrapper">
