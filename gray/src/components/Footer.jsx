@@ -1,5 +1,6 @@
 import React from "react";
 import "../componentDesign/HeaderFooter.css";
+import { FaFacebookF, FaInstagram, FaTwitter, FaEnvelope, FaPhoneAlt } from "react-icons/fa";
 
 const Footer = ({ setShowHelp, setShowAbout, setShowDevs }) => {
   const conditions = [
@@ -12,34 +13,13 @@ const Footer = ({ setShowHelp, setShowAbout, setShowDevs }) => {
 
   return (
     <div className="footer">
-      <div className="help-signup">
-        <h2>Sign Up for Help</h2>
-        <p style={{ color: "var(--text-dark)" }}>
-          Learn about opportunities to help change the conversation around mental health.
-        </p>
-        <form className="help-form">
-          <label>FIRST NAME</label>
-          <input type="text" />
 
-          <label>LAST NAME</label>
-          <input type="text" />
-
-          <label>EMAIL</label>
-          <input type="email" />
-
-          <label>PHONE NUMBER (OPTIONAL)</label>
-          <input type="tel" />
-
-          <button type="submit" className="submit-button-help">
-            SUBMIT
-          </button>
-        </form>
-      </div>
-
+      {/* === Footer Links & Info === */}
       <div className="footer-content">
-        <div className="footer-links">
+        <div className="footer-columns">
+          {/* Column 1: Learn */}
           <div>
-            <h4>Learn about Mental Health Conditions</h4>
+            <h4>Learn About Mental Health</h4>
             <ul>
               {conditions.map((condition, index) => (
                 <li key={index}>
@@ -55,9 +35,32 @@ const Footer = ({ setShowHelp, setShowAbout, setShowDevs }) => {
               ))}
             </ul>
           </div>
+
+          {/* Column 2: Quick Links */}
+          <div>
+            <h4>Quick Links</h4>
+            <ul>
+              <li><button onClick={() => setShowAbout?.(true)} className="footer-btn-link">About</button></li>
+              <li><button onClick={() => setShowDevs?.(true)} className="footer-btn-link">Developers</button></li>
+              <li><button onClick={() => setShowHelp?.(true)} className="footer-btn-link">Get Help</button></li>
+              <li><a href="/chatbot" className="footer-btn-link">    AI Chatbot</a></li>
+            </ul>
+          </div>
+
+          {/* Column 3: Contact Info */}
+          <div>
+            <h4>Contact Mental Health PH for further Assistance and Help</h4>
+            <p><FaEnvelope /> https://mentalhealthph.org/</p>
+            <p><FaPhoneAlt /> +63 917 899 8727</p>
+            <div className="social-icons">
+              <a href="https://www.facebook.com/mentalhealthph" target="_blank" rel="noreferrer"><FaFacebookF /></a>
+              <a href="https://x.com/mentalhealthph" target="_blank" rel="noreferrer"><FaTwitter /></a>
+              <a href="https://www.instagram.com/mentalhealthph/#" target="_blank" rel="noreferrer"><FaInstagram /></a>
+            </div>
+          </div>
         </div>
       </div>
-      
+
       <p>&copy; 2025 Mental Health Dashboard. All rights reserved.</p>
     </div>
   );
