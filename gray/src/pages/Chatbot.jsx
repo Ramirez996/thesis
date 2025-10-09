@@ -28,17 +28,26 @@ function Chatbot({ combinedScore, classification, hybridRiskData }) {
           "Your results suggest mild or minimal symptoms. Keep up your good habits and continue taking care of your well-being!";
       }
 
-      // 2. CREATE HYBRID RISK MESSAGE
-      let hybridText = "";
+let hybridText = "";
       if (hybridRiskData) {
-        hybridText = `Hybrid Analysis: Your final risk level is ${hybridRiskData.risk_level}. (LR Score: ${hybridRiskData.lr_score}, BERT Score: ${hybridRiskData.bert_score}).`;
+        
+        // Use the Depression keys (more descriptive) and fall back to Anxiety keys.
+        const finalRiskLevel = hybridRiskData.risk_level || hybridRiskData.final_risk;
+        const hybridScore = hybridRiskData.hybrid_risk_score || hybridRiskData.final_risk;
+        const bertScore = hybridRiskData.bert_score || hybridRiskData.bert_anomaly_score;
+
+        // Check for missing risk level and provide a fallback.
+        const displayRiskLevel = finalRiskLevel ? finalRiskLevel : 
+              (hybridScore >= 0.5 ? "High" : "Low");
+        
+        hybridText = `Hybrid Analysis: Your final risk level is ${displayRiskLevel}. (LR Score: ${hybridRiskData.lr_score}, BERT Score: ${bertScore}).`;
       }
       
       setResultMessage(resultText);
       setAdviceMessage(adviceText);
-      setHybridMessage(hybridText); // Set the new message
+      setHybridMessage(hybridText);
     }
-  }, [combinedScore, classification, hybridRiskData]); // Include hybridRiskData in dependencies
+  }, [combinedScore, classification, hybridRiskData]);
 
   if (!visible) return null;
 
