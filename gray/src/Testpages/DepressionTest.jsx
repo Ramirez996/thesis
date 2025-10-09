@@ -156,14 +156,18 @@ const DepressionTest = () => {
           </ul>
 
           {/*Chatbot shows automatically after test submission */}
-          {showChatbot && (
-            <div className="chatbot-icon-wrapper">
-              <Chatbot
-                combinedScore={score}
-                classification={result.result}
-              />
-            </div>
-          )}
+          {showChatbot && (
+            <div className="chatbot-icon-wrapper">
+              <Chatbot
+                combinedScore={score}
+                classification={result.result}
+                //Pass the entire hybrid risk object
+                hybridRiskData={hybridRisk} 
+                //Pass the high-risk status (if you need it separately)
+                isHighRisk={hybridRisk?.is_high_risk}
+              />
+            </div>
+          )}
         </div>
       )}
     </div>

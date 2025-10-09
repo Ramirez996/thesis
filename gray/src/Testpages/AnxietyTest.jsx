@@ -215,6 +215,18 @@ const AnxietyTest = () => {
           </ul>
         </div>
       )}
+      
+      {/* MODIFIED BLOCK in AnxietyTest.jsx */}
+      {isChatbotVisible && (
+        <div className="chatbot-wrapper">
+          <Chatbot 
+            combinedScore={score}                 
+            classification={result.result}         
+            hybridRiskData={hybridRisk}           
+            severeAlert={result?.result.startsWith("Severe Anxiety")} 
+          />
+        </div>
+      )}
 
       {showResult && (
         <button onClick={toggleChatbot} ref={chatbotButtonRef} className="footer-button">
