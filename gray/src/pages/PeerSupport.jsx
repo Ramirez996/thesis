@@ -167,7 +167,7 @@ const PeerSupport = ({ initialSpace = 'Community Support' }) => {
                     </ul>
 
                     <p>
-                        Our goal is to integrate AI-assisted analysis with peer support to encourage early detection 
+                        Our goal is to integrate BERT Natural Language Processing model for sentiment analysis with peer support and to combine its result to Logistic Regression Algorithm to encourage early detection 
                         of psychological distress while providing a safe and anonymous platform for sharing thoughts.
                     </p>
                     <p className="note">
