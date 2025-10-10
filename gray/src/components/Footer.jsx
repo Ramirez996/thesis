@@ -43,7 +43,6 @@ const Footer = ({ setShowHelp, setShowAbout, setShowDevs }) => {
               <li><button onClick={() => setShowAbout?.(true)} className="footer-btn-link">About</button></li>
               <li><button onClick={() => setShowDevs?.(true)} className="footer-btn-link">Developers</button></li>
               <li><button onClick={() => setShowHelp?.(true)} className="footer-btn-link">Get Help</button></li>
-              <li><a href="/chatbot" className="footer-btn-link">    AI Chatbot</a></li>
             </ul>
           </div>
 
