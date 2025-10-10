@@ -396,64 +396,71 @@ PHQ9_INTERCEPT = -6.5
 @app.route('/phq9_risk', methods=['POST'])
 def phq9_risk():
     data = request.get_json()
-    user_name = data.get("user_name","Anonymous")
+    user_name = data.get("user_name", "Anonymous")
     answers = data.get("answers")
-    text = data.get("text","")
+    text = data.get("text", "")
 
-    if not answers or len(answers)!=9:
-        return jsonify({"error":"Answers must be a list of 9 numbers"}),400
+    if not answers or len(answers) != 9:
+        return jsonify({"error": "Answers must be a list of 9 numbers"}), 400
 
     features = np.array(answers)
     logit = np.dot(features, PHQ9_WEIGHTS) + PHQ9_INTERCEPT
-    probability = 1/(1+np.exp(-logit))
-    risk_level = "High" if probability>=0.7 else "Low"
+    probability = 1 / (1 + np.exp(-logit))
 
-
+    # --- Analyze text sentiment ---
     anomaly_score = 0.0
     if text:
-
         try:
             emotion_result = analyze_text(text)
-
             if emotion_result.get("is_negative", False):
                 anomaly_score = emotion_result.get("confidence", 0.5)
             else:
-                anomaly_score = 0.1  # Low anomaly for positive emotions
+                anomaly_score = 0.1
         except Exception as e:
             print(f"Error analyzing text for PHQ-9: {e}")
             anomaly_score = 0.0
 
-    hybrid_score = (probability+anomaly_score)/2
+    # --- Combine both models ---
+    hybrid_score = (probability + anomaly_score) / 2
+
+    # Determine risk level based on hybrid score
+    if hybrid_score >= 0.7:
+        risk_level = "High"
+    elif hybrid_score >= 0.4:
+        risk_level = "Moderate"
+    else:
+        risk_level = "Low"
 
     cursor.execute("""
-    INSERT INTO depression_results (
-        user_name, score, result_text, description, 
-        lr_score, bert_anomaly_score, hybrid_risk_score, 
-        risk_level, is_high_risk, answers_json
-    )
-    VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
-""", (
-    user_name,
-    int(sum(answers)),
-    risk_level,
-    "PHQ-9 Depression + BERT analysis",
-    round(probability,4),
-    round(anomaly_score,4),
-    round(hybrid_score,4),
-    risk_level,
-    risk_level=="High",
-    json.dumps(answers)
-))
+        INSERT INTO depression_results (
+            user_name, score, result_text, description,
+            lr_score, bert_anomaly_score, hybrid_risk_score,
+            risk_level, is_high_risk, answers_json
+        )
+        VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+    """, (
+        user_name,
+        int(sum(answers)),
+        risk_level,
+        "PHQ-9 Depression + BERT hybrid risk model",
+        round(probability, 4),
+        round(anomaly_score, 4),
+        round(hybrid_score, 4),
+        risk_level,
+        risk_level == "High",
+        json.dumps(answers)
+    ))
 
     db.commit()
 
     return jsonify({
-        "lr_score": round(probability,4),
-        "bert_score": round(anomaly_score,4),
-        "hybrid_risk_score": round(hybrid_score,4),
+        "lr_score": round(probability, 4),
+        "bert_score": round(anomaly_score, 4),
+        "hybrid_risk_score": round(hybrid_score, 4),
         "risk_level": risk_level,
-        "is_high_risk": risk_level=="High"
+        "is_high_risk": risk_level == "High"
     })
+
 
 # ---------------- Personality Test ----------------
 @app.route('/bfi10_risk', methods=['POST'])
