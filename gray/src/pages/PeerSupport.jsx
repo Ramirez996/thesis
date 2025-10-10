@@ -156,7 +156,7 @@ const PeerSupport = ({ initialSpace = 'Community Support' }) => {
                     <h3>👨‍💻 About the Developers</h3>
                     <p>
                         This platform was developed as part of the thesis project: <br />
-                        <strong>"Mental Health Assessment Using Logistic Regression for Early Detection of Psychological Distress"</strong>.
+                        <strong>"Mental Health Assessment Using Logistic Regression and BERT-based NLP for Early Detection of Psychological Distress"</strong>.
                     </p>
 
                     <ul className="developer-team">
