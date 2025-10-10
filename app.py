@@ -390,9 +390,8 @@ def gad7_risk():
     })
 
 # ---------------- PHQ-9 / Depression ----------------
-# Adjusted weights aligned to PHQ-9 clinical scoring
 PHQ9_WEIGHTS = np.array([0.12, 0.15, 0.1, 0.12, 0.1, 0.15, 0.12, 0.1, 0.14])
-PHQ9_INTERCEPT = -6.5  # ensures mild/moderate values don't trigger "High"
+PHQ9_INTERCEPT = -6.5
 
 @app.route('/phq9_risk', methods=['POST'])
 def phq9_risk():
@@ -404,25 +403,11 @@ def phq9_risk():
     if not answers or len(answers) != 9:
         return jsonify({"error": "Answers must be a list of 9 numbers"}), 400
 
-    # Compute logistic regression probability
     features = np.array(answers)
     logit = np.dot(features, PHQ9_WEIGHTS) + PHQ9_INTERCEPT
     probability = 1 / (1 + np.exp(-logit))
 
-    # Determine LR-based risk using standard PHQ-9 scoring
-    total_score = int(sum(answers))
-    if total_score >= 20:
-        lr_risk_level = "Severe"
-    elif total_score >= 15:
-        lr_risk_level = "Moderately Severe"
-    elif total_score >= 10:
-        lr_risk_level = "Moderate"
-    elif total_score >= 5:
-        lr_risk_level = "Mild"
-    else:
-        lr_risk_level = "Minimal"
-
-    # Analyze emotional text context (BERT)
+    # --- Analyze sentiment ---
     anomaly_score = 0.0
     if text:
         try:
@@ -435,17 +420,18 @@ def phq9_risk():
             print(f"Error analyzing text for PHQ-9: {e}")
             anomaly_score = 0.0
 
-    # Combine LR and BERT results
+    # --- Combine both models ---
     hybrid_score = (probability + anomaly_score) / 2
 
-    # Align hybrid risk with PHQ-9 ranges
-    if total_score >= 20:
-        hybrid_risk_level = "High"
-    elif total_score >= 10:
-        hybrid_risk_level = "Moderate"
+    # Determine risk level *after* hybrid_score
+    if hybrid_score >= 0.7:
+        risk_level = "High"
+    elif hybrid_score >= 0.5:
+        risk_level = "Moderate"
     else:
-        hybrid_risk_level = "Low"
+        risk_level = "Low"
 
+    # --- Save to DB ---
     cursor.execute("""
         INSERT INTO depression_results (
             user_name, score, result_text, description,
@@ -455,27 +441,25 @@ def phq9_risk():
         VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
     """, (
         user_name,
-        total_score,
-        hybrid_risk_level,
-        "PHQ-9 Depression + BERT analysis (aligned to clinical standards)",
+        int(sum(answers)),
+        risk_level,
+        "PHQ-9 Depression + BERT Hybrid Risk Model",
         round(probability, 4),
         round(anomaly_score, 4),
         round(hybrid_score, 4),
-        hybrid_risk_level,
-        hybrid_risk_level == "High",
+        risk_level,
         json.dumps(answers)
     ))
+
     db.commit()
 
     return jsonify({
         "lr_score": round(probability, 4),
         "bert_score": round(anomaly_score, 4),
         "hybrid_risk_score": round(hybrid_score, 4),
-        "risk_level": hybrid_risk_level,
-        "phq9_category": lr_risk_level,
-        "is_high_risk": hybrid_risk_level == "High"
+        "risk_level": risk_level,
+        "is_high_risk": risk_level == "High"
     })
-
 
 
 # ---------------- Personality Test ----------------
