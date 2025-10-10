@@ -31,6 +31,7 @@ const PeerSupport = ({ initialSpace = 'Community Support' }) => {
 
     const [isAdmin, setIsAdmin] = useState(false);
     const [loading, setLoading] = useState(true);
+    const [isPosting, setIsPosting] = useState(false); // ✅ New UX loading state
     const [email, setEmail] = useState('');
     const [csvFile, setCsvFile] = useState(null);
 
@@ -44,7 +45,6 @@ const PeerSupport = ({ initialSpace = 'Community Support' }) => {
         return () => unsubscribe();
     }, []);
 
-    // ✅ fetch posts from Flask backend whenever space changes
     useEffect(() => {
         const fetchPosts = async () => {
             try {
@@ -78,8 +78,9 @@ const PeerSupport = ({ initialSpace = 'Community Support' }) => {
         const user = auth.currentUser;
         const userName = isAdmin && user ? user.email : 'Anonymous';
 
+        setIsPosting(true); // ✅ Show loading
+
         try {
-            // first analyze via /analyze
             const response = await fetch(getApiUrl('ANALYZE'), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -92,7 +93,6 @@ const PeerSupport = ({ initialSpace = 'Community Support' }) => {
                 alert("⚠️ Your post expresses strong negative emotions. If you're in crisis, please consider seeking help or contacting a support hotline.");
             }
 
-            // then save to backend /posts
             const saveRes = await fetch(getApiUrl('POSTS'), {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -108,6 +108,8 @@ const PeerSupport = ({ initialSpace = 'Community Support' }) => {
         } catch (error) {
             console.error('Failed to handle post:', error);
             alert('Error posting.');
+        } finally {
+            setIsPosting(false); // ✅ Hide loading
         }
     };
 
@@ -132,6 +134,16 @@ const PeerSupport = ({ initialSpace = 'Community Support' }) => {
             alert('CSV upload failed.');
         }
     };
+
+    // ✅ Show loading overlay when posting
+    if (isPosting) {
+        return (
+            <div className="loading-overlay">
+                <div className="loading-spinner"></div>
+                <p>Posting your thoughts... 💭</p>
+            </div>
+        );
+    }
 
     const renderMainContent = () => {
         if (activeSpace === 'Suggested Actions') {
@@ -167,7 +179,7 @@ const PeerSupport = ({ initialSpace = 'Community Support' }) => {
                     </ul>
 
                     <p>
-                        Our goal is to integrate BERT Natural Language Processing (NLP) model for sentiment analysis with peer support and to combine its result to Logistic Regression Algorithm to encourage early detection 
+                        Our goal is to integrate BERT NLP model for sentiment analysis with peer support and to combine its result to Logistic Regression Algorithm to encourage early detection 
                         of psychological distress while providing a safe and anonymous platform for sharing thoughts.
                     </p>
                     <p className="note">
@@ -178,12 +190,16 @@ const PeerSupport = ({ initialSpace = 'Community Support' }) => {
                 </div>
             );
         }
+
         if (activeSpace === 'About System') {
             return (
                 <div className="about-system">
                     <h3>🖥️ About the System</h3>
                     <p>
-                        This system is designed to help people in understanding and self-evaluation of their mental well-being using Artificial Intelligence. There are tests for anxiety, depression, general well- being, and personality characteristics. The scoring in different categories is analyzed via a logistic regression model, which further helps in classifying the results as per risk levels. An AI chatbot helps one in guided self-reflection; a peer support is there for enabling safe, anonymous sharing and encouragement. The system is designed with the perspective of user privacy, ethical interactions, and early detection to support overall mental well-being.
+                        This system is designed to help people understand and self-evaluate their mental well-being using Artificial Intelligence. 
+                        There are tests for anxiety, depression, general well-being, and personality characteristics. 
+                        The scoring is analyzed via a logistic regression model to classify results by risk level. 
+                        An AI chatbot supports guided reflection, and peer support allows safe, anonymous sharing and encouragement.
                     </p>
                 </div>
             );
@@ -264,7 +280,6 @@ const PeerSupport = ({ initialSpace = 'Community Support' }) => {
 const PostCard = ({ post, space, posts, setPosts, isAdmin }) => {
     const [comment, setComment] = useState('');
 
-    // ✅ add comment through backend
     const addComment = async () => {
         if (!comment.trim()) return;
         try {
@@ -285,7 +300,6 @@ const PostCard = ({ post, space, posts, setPosts, isAdmin }) => {
         }
     };
 
-    // ✅ delete post
     const deletePost = async () => {
         try {
             await fetch(`${getApiUrl('POSTS')}/${post.id}`, { method: "DELETE" });
@@ -298,7 +312,6 @@ const PostCard = ({ post, space, posts, setPosts, isAdmin }) => {
         }
     };
 
-    // ✅ delete comment
     const deleteComment = async (commentId) => {
         try {
             await fetch(`${API_URL}/comments/${commentId}`, { method: "DELETE" });
