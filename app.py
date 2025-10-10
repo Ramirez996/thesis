@@ -358,7 +358,7 @@ def gad7_risk():
             anomaly_score = 0.0
 
     hybrid_score = (probability + anomaly_score)/2
-    risk_level = "High" if hybrid_score >= 0.5 else "Low"
+    risk_level = "High" if hybrid_score >= 0.7 else "Low"
 
     # non-blck
     try:
@@ -390,8 +390,8 @@ def gad7_risk():
     })
 
 # ---------------- PHQ-9 / Depression ----------------
-PHQ9_WEIGHTS = np.array([0.6,0.8,0.5,0.7,0.4,0.9,0.6,0.5,1.0])
-PHQ9_INTERCEPT = -2.0
+PHQ9_WEIGHTS = np.array([0.12, 0.15, 0.1, 0.12, 0.1, 0.15, 0.12, 0.1, 0.14])
+PHQ9_INTERCEPT = -6.5
 
 @app.route('/phq9_risk', methods=['POST'])
 def phq9_risk():
@@ -406,7 +406,7 @@ def phq9_risk():
     features = np.array(answers)
     logit = np.dot(features, PHQ9_WEIGHTS) + PHQ9_INTERCEPT
     probability = 1/(1+np.exp(-logit))
-    risk_level = "High" if probability>=0.5 else "Low"
+    risk_level = "High" if probability>=0.7 else "Low"
 
 
     anomaly_score = 0.0
