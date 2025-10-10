@@ -139,11 +139,11 @@ const PeerSupport = ({ initialSpace = 'Community Support' }) => {
                 <div className="resource-links">
                     <h3>Suggested Actions</h3>
                     <ul>
-                        <li>🏥 <a href="https://www.doh.gov.ph/mental-health" target="_blank" rel="noreferrer">DOH Mental Health Resources</a></li>
+                        <li>🏥 <a href="https://www.who.int/philippines/news/detail/12-10-2023-doh--who-launch-philippine-council-for-mental-health-strategic-framework-2024-2028" target="_blank" rel="noreferrer">DOH Mental Health Resources</a></li>
                         <li>📍 <a href="https://www.ncmh.gov.ph/" target="_blank" rel="noreferrer">National Center for Mental Health</a> – Hotline: 1553</li>
                         <li>📞 <a href="https://www.facebook.com/ncmhcrisishotline/" target="_blank" rel="noreferrer">NCMH Crisis Hotline (Facebook)</a></li>
                         <li>🧠 <a href="https://mentalhealthph.org/" target="_blank" rel="noreferrer">MentalHealthPH.org</a></li>
-                        <li>🔍 <a href="https://directory.psychology.org.ph/" target="_blank" rel="noreferrer">Find a Psychologist</a></li>
+                        <li>🔍 <a href="https://nowserving.ph/psychology/" target="_blank" rel="noreferrer">Find a Psychologist</a></li>
                     </ul>
                     <p className="note">These resources are verified and can guide you to professional support. 💙</p>
                 </div>
@@ -160,14 +160,14 @@ const PeerSupport = ({ initialSpace = 'Community Support' }) => {
                     </p>
 
                     <ul className="developer-team">
-                        <li>👨‍💻 <strong>MARC RAINIER B. BUITIZON</strong> – Lead Programmer</li>
-                        <li>📋 <strong>Jeffrey Ramirez</strong> – Project Leader</li>
-                        <li>🛠 <strong>Gabriela Enriquez</strong> – System Manager</li>
-                        <li>🎨 <strong>Jensha Maniflor</strong> – Designer</li>
+                        <li>👨‍💻 <strong>Marc Rainier B. Buitizon</strong> – Lead Programmer</li>
+                        <li>📋 <strong>Jeffrey B. Ramirez</strong> – Project Leader</li>
+                        <li>🛠 <strong>Gabriela C. Enriquez</strong> – System Manager</li>
+                        <li>🎨 <strong>Jensha P. Maniflor</strong> – Designer</li>
                     </ul>
 
                     <p>
-                        Our goal is to integrate BERT Natural Language Processing model for sentiment analysis with peer support and to combine its result to Logistic Regression Algorithm to encourage early detection 
+                        Our goal is to integrate BERT Natural Language Processing (NLP) model for sentiment analysis with peer support and to combine its result to Logistic Regression Algorithm to encourage early detection 
                         of psychological distress while providing a safe and anonymous platform for sharing thoughts.
                     </p>
                     <p className="note">
