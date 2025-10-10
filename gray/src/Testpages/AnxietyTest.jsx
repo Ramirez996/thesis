@@ -155,12 +155,12 @@ const AnxietyTest = () => {
     <div className="chatbot-message bot">
       {result.is_high_risk ? (
         <p>
-          ⚠️ It seems you may be experiencing symptoms of anxiety. Consider talking to
+          It seems you may be experiencing symptoms of anxiety. Consider talking to
           a mental health professional or reaching out to supportive friends and family.
         </p>
       ) : (
         <p>
-          😊 You seem to be doing well emotionally. Continue practicing healthy habits and
+          You seem to be doing well emotionally. Continue practicing healthy habits and
           taking care of your mental well-being.
         </p>
       )}
