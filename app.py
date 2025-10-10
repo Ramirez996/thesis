@@ -486,7 +486,7 @@ def bfi10_risk():
     if lr_score is None:
         lr_score = 0.0
     hybrid_score = (lr_score + bert_anomaly_score) / 2
-    risk_level = "High" if hybrid_score >= 0.5 else "Low"
+    risk_level = "High" if hybrid_score >= 0.7 else "Low"
     is_high_risk = risk_level == "High"
 
     cursor.execute("""
@@ -546,7 +546,7 @@ def who5_risk():
             bert_score = 0.0
 
     hybrid_score = (lr_score + bert_score) / 2
-    risk_level = "High" if hybrid_score >= 0.5 else "Low"
+    risk_level = "High" if hybrid_score >= 0.7 else "Low"
     is_high_risk = risk_level == "High"
 
     cursor.execute("""
