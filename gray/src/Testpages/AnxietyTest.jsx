@@ -42,7 +42,8 @@ const AnxietyTest = () => {
       return;
     }
 
-    // Convert answers to numeric features
+    setIsLoading(true); // ✅ Start loading
+
     const features = questions.map((_, i) => optionValues[answers[i]]);
     const totalScore = features.reduce((sum, val) => sum + val, 0);
     setScore(totalScore);
@@ -52,7 +53,7 @@ const AnxietyTest = () => {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          user_name: "Anonymous", // can replace with actual logged-in user
+          user_name: "Anonymous",
           answers: features,
           text: "User completed the anxiety test"
         })
@@ -61,44 +62,43 @@ const AnxietyTest = () => {
       const data = await response.json();
       setHybridRisk(data);
 
-      // Interpret probability from LR
       const prob = data.lr_score;
-      // Interpret severity using STANDARD GAD-7 RAW SCORE (totalScore)
-      let anxietyResult;
-      
-      if (totalScore >= 15) { // Standard Severe: 15-21
-        anxietyResult = {
-          result: "Severe Anxiety – Consider professional help.",
-          description: "Your score suggests severe anxiety. Please consult a professional."
-        };
-      } else if (totalScore >= 10) { // Standard Moderate: 10-14
-        anxietyResult = {
-          result: "Moderate Anxiety – Keep monitoring.",
-          description: "Your score suggests moderate anxiety."
-        };
-      } else if (totalScore >= 5) { // Standard Mild: 5-9
-        anxietyResult = {
-          result: "Mild Anxiety – Be mindful of your well-being.",
-          description: "Your score suggests mild anxiety."
-        };
-      } else { // Standard Minimal: 0-4
-        anxietyResult = {
-          result: "Minimal Anxiety – Keep taking care of yourself!",
-          description: "Your score indicates minimal anxiety."
-        };
-      }
+      let anxietyResult;
 
-      setResult(anxietyResult);
-      setShowResult(true);
+      if (totalScore >= 15) {
+        anxietyResult = {
+          result: "Severe Anxiety – Consider professional help.",
+          description: "Your score suggests severe anxiety. Please consult a professional."
+        };
+      } else if (totalScore >= 10) {
+        anxietyResult = {
+          result: "Moderate Anxiety – Keep monitoring.",
+          description: "Your score suggests moderate anxiety."
+        };
+      } else if (totalScore >= 5) {
+        anxietyResult = {
+          result: "Mild Anxiety – Be mindful of your well-being.",
+          description: "Your score suggests mild anxiety."
+        };
+      } else {
+        anxietyResult = {
+          result: "Minimal Anxiety – Keep taking care of yourself!",
+          description: "Your score indicates minimal anxiety."
+        };
+      }
 
-      // Auto-open chatbot based on the standard classification
-      if (anxietyResult.result.startsWith("Severe Anxiety")) {
-        setIsChatbotVisible(true);
-      }
+      setResult(anxietyResult);
+      setShowResult(true);
+
+      if (anxietyResult.result.startsWith("Severe Anxiety")) {
+        setIsChatbotVisible(true);
+      }
 
     } catch (error) {
       console.error("Error fetching hybrid risk:", error);
       alert("Failed to compute risk. Please try again.");
+    } finally {
+      setIsLoading(false); // ✅ Stop loading
     }
   };
 
@@ -124,50 +124,56 @@ const AnxietyTest = () => {
               </div>
             </div>
           ))}
-          <button onClick={handleSubmit} className="submit-button">SUBMIT</button>
+          <button
+            onClick={handleSubmit}
+            className="submit-button"
+            disabled={isLoading} // ✅ Disable while loading
+          >
+            {isLoading ? "Submitting..." : "SUBMIT"}
+          </button>
 
           {result && (
-  <div className="chatbot-container fade-in">
-    <div className="chatbot-message bot">
-      <p><strong>AI Counselor:</strong> Thank you for completing the Anxiety (GAD-7) test.</p>
-    </div>
+            <div className="chatbot-container fade-in">
+              <div className="chatbot-message bot">
+                <p><strong>AI Counselor:</strong> Thank you for completing the Anxiety (GAD-7) test.</p>
+              </div>
 
-    <div className="chatbot-message bot">
-      <p>
-        Based on your responses, your <strong>risk level</strong> appears to be{" "}
-        <strong>{result.is_high_risk ? "High" : "Low"}</strong>.
-      </p>
-    </div>
+              <div className="chatbot-message bot">
+                <p>
+                  Based on your responses, your <strong>risk level</strong> appears to be{" "}
+                  <strong>{result.is_high_risk ? "High" : "Low"}</strong>.
+                </p>
+              </div>
 
-    <div className="chatbot-message bot">
-      <p>
-        Your <strong>Logistic Regression Score</strong> is {result.lr_score}, and your{" "}
-        <strong>BERT Anomaly Score</strong> is {result.bert_anomaly_score}.
-      </p>
-    </div>
+              <div className="chatbot-message bot">
+                <p>
+                  Your <strong>Logistic Regression Score</strong> is {result.lr_score}, and your{" "}
+                  <strong>BERT Anomaly Score</strong> is {result.bert_anomaly_score}.
+                </p>
+              </div>
 
-    <div className="chatbot-message bot">
-      <p>
-        Overall, your <strong>final hybrid risk</strong> is:{" "}
-        <strong>{result.final_risk}</strong>.
-      </p>
-    </div>
+              <div className="chatbot-message bot">
+                <p>
+                  Overall, your <strong>final hybrid risk</strong> is:{" "}
+                  <strong>{result.final_risk}</strong>.
+                </p>
+              </div>
 
-    <div className="chatbot-message bot">
-      {result.is_high_risk ? (
-        <p>
-          It seems you may be experiencing symptoms of anxiety. Consider talking to
-          a mental health professional or reaching out to supportive friends and family.
-        </p>
-      ) : (
-        <p>
-          You seem to be doing well emotionally. Continue practicing healthy habits and
-          taking care of your mental well-being.
-        </p>
-      )}
-    </div>
-  </div>
-)}
+              <div className="chatbot-message bot">
+                {result.is_high_risk ? (
+                  <p>
+                    It seems you may be experiencing symptoms of anxiety. Consider talking to
+                    a mental health professional or reaching out to supportive friends and family.
+                  </p>
+                ) : (
+                  <p>
+                    You seem to be doing well emotionally. Continue practicing healthy habits and
+                    taking care of your mental well-being.
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
 
           <div className="test-source">
             <h2>Source:</h2>
@@ -220,16 +226,16 @@ const AnxietyTest = () => {
       )}
 
       {/* MODIFIED BLOCK in AnxietyTest.jsx */}
-      {isChatbotVisible && (
-        <div className="chatbot-wrapper">
-          <Chatbot 
-            combinedScore={score}                 
-            classification={result.result}         
-            hybridRiskData={hybridRisk}           
-            severeAlert={result?.result.startsWith("Severe Anxiety")} 
-          />
-        </div>
-      )}
+      {isChatbotVisible && (
+        <div className="chatbot-wrapper">
+          <Chatbot 
+            combinedScore={score}                 
+            classification={result.result}         
+            hybridRiskData={hybridRisk}           
+            severeAlert={result?.result.startsWith("Severe Anxiety")} 
+          />
+        </div>
+      )}
 
       {showResult && (
         <button onClick={toggleChatbot} ref={chatbotButtonRef} className="footer-button">
@@ -240,6 +246,14 @@ const AnxietyTest = () => {
       {isChatbotVisible && (
         <div className="chatbot-wrapper">
           <Chatbot severeAlert={result?.result.startsWith("Severe Anxiety")} />
+        </div>
+      )}
+
+      {/* ✅ Loading Overlay (Added) */}
+      {isLoading && (
+        <div className="loading-overlay">
+          <div className="loader"></div>
+          <p>Submitting...</p>
         </div>
       )}
     </div>
