@@ -390,8 +390,8 @@ def gad7_risk():
     })
 
 # ---------------- PHQ-9 / Depression ----------------
-PHQ9_WEIGHTS = np.array([0.12, 0.15, 0.1, 0.12, 0.1, 0.15, 0.12, 0.1, 0.14])
-PHQ9_INTERCEPT = -6.5
+PHQ9_WEIGHTS = np.array([0.6,0.8,0.5,0.7,0.4,0.9,0.6,0.5,1.0])
+PHQ9_INTERCEPT = -2.0
 
 @app.route('/phq9_risk', methods=['POST'])
 def phq9_risk():
@@ -486,7 +486,7 @@ def bfi10_risk():
     if lr_score is None:
         lr_score = 0.0
     hybrid_score = (lr_score + bert_anomaly_score) / 2
-    risk_level = "High" if hybrid_score >= 0.7 else "Low"
+    risk_level = "High" if hybrid_score >= 0.5 else "Low"
     is_high_risk = risk_level == "High"
 
     cursor.execute("""
@@ -546,7 +546,7 @@ def who5_risk():
             bert_score = 0.0
 
     hybrid_score = (lr_score + bert_score) / 2
-    risk_level = "High" if hybrid_score >= 0.7 else "Low"
+    risk_level = "High" if hybrid_score >= 0.5 else "Low"
     is_high_risk = risk_level == "High"
 
     cursor.execute("""
