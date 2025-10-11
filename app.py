@@ -391,7 +391,7 @@ def gad7_risk():
 
 # ---------------- PHQ-9 / Depression ----------------
 PHQ9_WEIGHTS = np.array([0.6,0.8,0.5,0.7,0.4,0.9,0.6,0.5,1.0])
-PHQ9_INTERCEPT = -2.0
+PHQ9_INTERCEPT = -5.555  # Adjusted for prob ≈ 0.5 at sum=10 (moderate cutoff)
 
 @app.route('/phq9_risk', methods=['POST'])
 def phq9_risk():
@@ -399,17 +399,17 @@ def phq9_risk():
     user_name = data.get("user_name","Anonymous")
     answers = data.get("answers")
     text = data.get("text","")
-
+    
     if not answers or len(answers)!=9:
         return jsonify({"error":"Answers must be a list of 9 numbers"}),400
-
+    
     features = np.array(answers)
+
     logit = np.dot(features, PHQ9_WEIGHTS) + PHQ9_INTERCEPT
     probability = 1/(1+np.exp(-logit))
-    risk_level = "High" if probability>=0.5 else "Low"
-
 
     anomaly_score = 0.0
+
     if text:
 
         try:
@@ -424,6 +424,8 @@ def phq9_risk():
             anomaly_score = 0.0
 
     hybrid_score = (probability+anomaly_score)/2
+    risk_level = "High" if hybrid_score >= 0.5 else "Low"  # Now based on hybrid for consistency
+    is_high_risk = risk_level == "High"
 
     cursor.execute("""
     INSERT INTO depression_results (
@@ -441,7 +443,7 @@ def phq9_risk():
     round(anomaly_score,4),
     round(hybrid_score,4),
     risk_level,
-    risk_level=="High",
+    is_high_risk,
     json.dumps(answers)
 ))
 
@@ -452,7 +454,7 @@ def phq9_risk():
         "bert_score": round(anomaly_score,4),
         "hybrid_risk_score": round(hybrid_score,4),
         "risk_level": risk_level,
-        "is_high_risk": risk_level=="High"
+        "is_high_risk": is_high_risk
     })
 
 # ---------------- Personality Test ----------------
