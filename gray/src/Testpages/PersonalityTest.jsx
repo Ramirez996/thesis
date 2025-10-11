@@ -1,202 +1,112 @@
-import React, { useState, useRef } from "react";
+import React, { useState } from "react";
 import "../testDesign/EatingTest.css";
 import { getApiUrl } from "../config/api";
-import Chatbot from "../pages/Chatbot"; // Import Chatbot
 
 const questions = [
-  { id: 1, text: "I see myself as someone who is reserved.", options: ["Strongly Disagree", "Disagree", "Neutral", "Agree", "Strongly Agree"] },
-  { id: 2, text: "I see myself as someone who is generally trusting.", options: ["Strongly Disagree", "Disagree", "Neutral", "Agree", "Strongly Agree"] },
-  { id: 3, text: "I see myself as someone who tends to be lazy.", options: ["Strongly Disagree", "Disagree", "Neutral", "Agree", "Strongly Agree"] },
-  { id: 4, text: "I see myself as someone who is relaxed, handles stress well.", options: ["Strongly Disagree", "Disagree", "Neutral", "Agree", "Strongly Agree"] },
-  { id: 5, text: "I see myself as someone who has few artistic interests.", options: ["Strongly Disagree", "Disagree", "Neutral", "Agree", "Strongly Agree"] },
-  { id: 6, text: "I see myself as someone who is outgoing, sociable.", options: ["Strongly Disagree", "Disagree", "Neutral", "Agree", "Strongly Agree"] },
-  { id: 7, text: "I see myself as someone who tends to find fault with others.", options: ["Strongly Disagree", "Disagree", "Neutral", "Agree", "Strongly Agree"] },
-  { id: 8, text: "I see myself as someone who does a thorough job.", options: ["Strongly Disagree", "Disagree", "Neutral", "Agree", "Strongly Agree"] },
-  { id: 9, text: "I see myself as someone who gets nervous easily.", options: ["Strongly Disagree", "Disagree", "Neutral", "Agree", "Strongly Agree"] },
-  { id: 10, text: "I see myself as someone who has an active imagination.", options: ["Strongly Disagree", "Disagree", "Neutral", "Agree", "Strongly Agree"] },
+  { id: 1, text: "I see myself as someone who is talkative.", options: ["Strongly Disagree", "Disagree", "Agree", "Strongly Agree"] },
+  { id: 2, text: "I see myself as someone who is organized.", options: ["Strongly Disagree", "Disagree", "Agree", "Strongly Agree"] },
+  { id: 3, text: "I see myself as someone who worries a lot.", options: ["Strongly Disagree", "Disagree", "Agree", "Strongly Agree"] },
+  { id: 4, text: "I see myself as someone who is imaginative.", options: ["Strongly Disagree", "Disagree", "Agree", "Strongly Agree"] },
+  { id: 5, text: "I see myself as someone who is helpful and unselfish.", options: ["Strongly Disagree", "Disagree", "Agree", "Strongly Agree"] },
 ];
 
 const optionValues = {
-  "Strongly Disagree": 1,
-  "Disagree": 2,
-  "Neutral": 3,
-  "Agree": 4,
-  "Strongly Agree": 5,
+  "Strongly Disagree": 0,
+  "Disagree": 1,
+  "Agree": 2,
+  "Strongly Agree": 3,
 };
 
-const calculatePersonality = (scores) => {
-  return {
-    Extraversion: scores[0] + scores[5],
-    Agreeableness: scores[1] + (6 - scores[6]),
-    Conscientiousness: scores[7] + (6 - scores[2]),
-    Neuroticism: scores[8] + (6 - scores[3]),
-    Openness: scores[9] + (6 - scores[4]),
-  };
-};
-
-const traitDescriptions = {
-  Extraversion: "Extraversion reflects how outgoing, energetic, and sociable you are. High scores indicate enthusiasm and assertiveness.",
-  Agreeableness: "Agreeableness indicates compassion and cooperativeness toward others. Higher scores reflect empathy and generosity.",
-  Neuroticism: "Neuroticism reflects emotional instability. Higher scores suggest sensitivity and moodiness.",
-  Openness: "Openness describes imagination and curiosity. High scores show creativity and preference for variety.",
-  Conscientiousness: "Conscientiousness is about being organized, dependable, and goal-oriented. Higher scores indicate reliability and discipline.",
+const getResult = (score) => {
+  if (score >= 12) return { result: "Extroverted and Positive", description: "You exhibit openness, confidence, and warmth." };
+  if (score >= 8) return { result: "Balanced Personality", description: "You have a well-rounded personality type." };
+  if (score >= 4) return { result: "Introverted", description: "You may prefer quiet environments or introspection." };
+  return { result: "Reserved", description: "You tend to be calm and reserved in most situations." };
 };
 
 const PersonalityTest = () => {
-  const [answers, setAnswers] = useState({});
-  const [showResult, setShowResult] = useState(false);
-  const [result, setResult] = useState(null);
-  const [hybridRisk, setHybridRisk] = useState(null);
-  // --- FIX 1: Add state for the total score ---
-  const [score, setScore] = useState(0); 
-  const [isChatbotVisible, setIsChatbotVisible] = useState(false); 
-  const chatbotButtonRef = useRef(null); 
+  const [answers, setAnswers] = useState({});
+  const [showResult, setShowResult] = useState(false);
+  const [result, setResult] = useState(null);
+  const [score, setScore] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const toggleChatbot = () => setIsChatbotVisible(prev => !prev); 
+  const handleOptionSelect = (i, option) => setAnswers(prev => ({ ...prev, [i]: option }));
 
-  const handleOptionSelect = (index, option) => {
-    setAnswers(prev => ({ ...prev, [index]: option }));
-  };
+  const handleSubmit = async () => {
+    if (Object.keys(answers).length < questions.length) {
+      alert("Please answer all questions before submitting.");
+      return;
+    }
 
-  const handleSubmit = async () => {
-    if (Object.keys(answers).length < questions.length) {
-      alert("Please answer all questions.");
-      return;
-    }
+    setIsLoading(true);
+    const features = questions.map((_, i) => optionValues[answers[i]]);
+    const totalScore = features.reduce((sum, val) => sum + val, 0);
+    setScore(totalScore);
 
-    const scores = Object.values(answers).map(ans => optionValues[ans]);
-    const traits = calculatePersonality(scores);
-    setResult(traits);
+    const evaluation = getResult(totalScore);
+    setResult(evaluation);
 
-    const totalScore = scores.reduce((a, b) => a + b, 0); 
-    // --- FIX 2: Set the score state variable ---
-    setScore(totalScore); 
-    const normalizedScore = totalScore / (questions.length * 5);
+    try {
+      await fetch(getApiUrl("PERSONALITY_RISK"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ answers: features, score: totalScore }),
+      });
+      setShowResult(true);
+    } catch (err) {
+      console.error("Error:", err);
+    }
 
-    // Create a text summary for the BERT model
-    const traitSummary = Object.entries(traits)
-      .map(([trait, value]) => `${trait} score is ${value}.`)
-      .join(" ");
-    const textForBert = `My personality traits are: ${traitSummary} ${answers[9] ? `I am also: ${answers[9]}` : ''}`; 
+    setIsLoading(false);
+  };
 
-    try {
-      const res = await fetch(getApiUrl('BFI10_RISK'), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          user_name: "Test User",
-          answers: scores, 
-          traits: traits,
-          lr_score: normalizedScore,
-          text: textForBert, 
-        }),
-      });
+  return (
+    <div className="test-container">
+      {!showResult ? (
+        <>
+          <h1>Personality Test</h1>
+          {questions.map((q, i) => (
+            <div key={q.id} className="question-item">
+              <p>{i + 1}. {q.text}</p>
+              <div className="button-options">
+                {q.options.map(opt => (
+                  <button
+                    key={opt}
+                    className={`option-button ${answers[i] === opt ? "selected" : ""}`}
+                    onClick={() => handleOptionSelect(i, opt)}
+                  >
+                    {opt}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
+          <button
+            className="submit-button"
+            onClick={handleSubmit}
+            disabled={isLoading}
+          >
+            {isLoading ? "Submitting..." : "SUBMIT"}
+          </button>
+        </>
+      ) : (
+        <div className="result-section">
+          <h2>Your Result:</h2>
+          <p><strong>Score:</strong> {score} / 15</p>
+          <p><strong>{result.result}</strong></p>
+          <p>{result.description}</p>
+        </div>
+      )}
 
-      const data = await res.json();
-      setHybridRisk(data);
-
-      // Auto-open chatbot if the hybrid risk is high
-      if (data.is_high_risk) {
-        setIsChatbotVisible(true);
-      }
-
-    } catch (err) {
-      console.error("Error fetching hybrid risk:", err);
-    }
-
-    setShowResult(true);
-  };
-
-  // Function to generate a simple classification string based on traits
-  const getClassification = () => {
-    if (!result) return "";
-    const neuroticism = result.Neuroticism;
-    if (neuroticism >= 8) {
-      return "High Neuroticism Profile (Potentially higher risk)";
-    }
-    if (neuroticism <= 4) {
-      return "Low Neuroticism Profile (Stable)";
-    }
-    return "Balanced Personality Profile";
-  };
-
-  return (
-    <div className="test-container">
-      {!showResult ? (
-        <div className="question-section">
-          <h1>Personality Test (BFI-10)</h1>
-          {questions.map((q, i) => (
-            <div key={q.id} className="question-item">
-              <p>{i + 1}. {q.text}</p>
-              <div className="button-options">
-                {q.options.map(option => (
-                  <button
-                    key={option}
-                    className={`option-button ${answers[i] === option ? "selected" : ""}`}
-                    onClick={() => handleOptionSelect(i, option)}
-                  >
-                    {option}
-                  </button>
-                ))}
-              </div>
-            </div>
-          ))}
-          <button className="submit-button" onClick={handleSubmit}>SUBMIT</button>
-          <div className="test-source">
-            <h2>Source:</h2>
-          <p>
-            The BFI-10 was developed simultaneously in several samples in both English and German.It retains significant levels of reliability and validity compared to the full BFI-44.
-          </p>
-            <a href="https://homepages.se.edu/cvonbergen/files/2013/01/Measuring-Personality-in-One-Minute-or-Less_A-10-Item-Short-Version-of-the-Big-Five-Inventory-in-English-and-German.pdf" target="_blank"
-            rel="noopener noreferrer">https://homepages.se.edu/cvonbergen/files/2013/01/Measuring-Personality-in-One-Minute-or-Less_A-10-Item-Short-Version-of-the-Big-Five-Inventory-in-English-and-German.pdf</a>
-          </div>
-        </div>
-      ) : (
-        <div className="result-section">
-          <h2>Your Personality Trait Scores</h2>
-          <ul>
-            {Object.entries(result).map(([trait, value]) => (
-              <li key={trait}>
-                <strong>{trait}:</strong> {value} <br />
-                <span className="trait-description">{traitDescriptions[trait]}</span>
-              </li>
-            ))}
-          </ul>
-
-          {hybridRisk && (
-            <div className="hybrid-risk-section">
-              <h3>Hybrid Risk Analysis</h3>
-              <p><strong>Logistic Regression Score:</strong> {hybridRisk.lr_score}</p>
-              <p><strong>BERT Anomaly Score:</strong> {hybridRisk.bert_anomaly_score}</p>
-              <p><strong>Hybrid Score:</strong> {hybridRisk.hybrid_score}</p>
-              <p><strong>Risk Level:</strong> {hybridRisk.risk_level}</p>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* --- FIX 3: Robust Chatbot Rendering Condition --- */}
-      {/* Chatbot only renders if explicitly visible, result is present, AND API data (hybridRisk) is present */}
-      {isChatbotVisible && result && hybridRisk && (
-        <div className="chatbot-wrapper">
-          <Chatbot 
-            // --- FIX 4: Use the 'score' state variable instead of the local 'totalScore' ---
-            combinedScore={score}                 
-            classification={getClassification()}    
-            hybridRiskData={hybridRisk}           
-            // Since we check for hybridRisk above, we can safely access its property
-            severeAlert={hybridRisk.is_high_risk}
-          />
-        </div>
-      )}
-      
-      {showResult && (
-        <button onClick={toggleChatbot} ref={chatbotButtonRef} className="footer-button">
-          {isChatbotVisible ? "Hide Chatbot" : "Open Chatbot"}
-        </button>
-      )}
-    </div>
-  );
+      {isLoading && (
+        <div className="loading-overlay">
+          <div className="spinner"></div>
+          <p>Analyzing your responses...</p>
+        </div>
+      )}
+    </div>
+  );
 };
 
 export default PersonalityTest;
