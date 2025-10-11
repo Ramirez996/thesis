@@ -125,7 +125,7 @@ const PersonalityTest = () => {
       {isLoading && (
         <div className="loading-overlay">
           <div className="loader"></div>
-          <p>Submitting...</p>
+           <p>Analyzing your responses...</p>
         </div>
       )}
 
@@ -156,7 +156,7 @@ const PersonalityTest = () => {
           <button
             className="submit-button"
             onClick={handleSubmit}
-            disabled={isLoading} // ✅ Disable submit while loading
+            disabled={isLoading} // Disable submit while loading
           >
             {isLoading ? "Submitting..." : "SUBMIT"}
           </button>

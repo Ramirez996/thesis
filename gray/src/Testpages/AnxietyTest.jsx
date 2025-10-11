@@ -30,10 +30,10 @@ const AnxietyTest = () => {
   const [isChatbotVisible, setIsChatbotVisible] = useState(false);
   const chatbotButtonRef = useRef(null);
 
-  const toggleChatbot = () => setIsChatbotVisible(prev => !prev);
+  const toggleChatbot = () => setIsChatbotVisible((prev) => !prev);
 
   const handleOptionSelect = (index, option) => {
-    setAnswers(prev => ({ ...prev, [index]: option }));
+    setAnswers((prev) => ({ ...prev, [index]: option }));
   };
 
   const handleSubmit = async () => {
@@ -49,7 +49,7 @@ const AnxietyTest = () => {
     setScore(totalScore);
 
     try {
-      const response = await fetch(getApiUrl('GAD7_RISK'), {
+      const response = await fetch(getApiUrl("GAD7_RISK"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -62,7 +62,6 @@ const AnxietyTest = () => {
       const data = await response.json();
       setHybridRisk(data);
 
-      const prob = data.lr_score;
       let anxietyResult;
 
       if (totalScore >= 15) {
@@ -93,7 +92,6 @@ const AnxietyTest = () => {
       if (anxietyResult.result.startsWith("Severe Anxiety")) {
         setIsChatbotVisible(true);
       }
-
     } catch (error) {
       console.error("Error fetching hybrid risk:", error);
       alert("Failed to compute risk. Please try again.");
@@ -104,19 +102,30 @@ const AnxietyTest = () => {
 
   return (
     <div className="test-container">
+      {/* === Loading Overlay === */}
+      {isLoading && (
+        <div className="loading-overlay">
+          <div className="spinner"></div>
+          <p>Analyzing your responses...</p>
+        </div>
+      )}
+
       <h1>Anxiety Test (GAD-7)</h1>
 
       {!showResult ? (
         <div className="question-section">
           {questions.map((q, i) => (
             <div key={q.id} className="question-item">
-              <p>{i + 1}. {q.text}</p>
+              <p>
+                {i + 1}. {q.text}
+              </p>
               <div className="button-options">
-                {q.options.map(option => (
+                {q.options.map((option) => (
                   <button
                     key={option}
                     onClick={() => handleOptionSelect(i, option)}
                     className={`option-button ${answers[i] === option ? "selected" : ""}`}
+                    disabled={isLoading} // ✅ Disable buttons while loading
                   >
                     {option}
                   </button>
@@ -124,10 +133,11 @@ const AnxietyTest = () => {
               </div>
             </div>
           ))}
+
           <button
             onClick={handleSubmit}
             className="submit-button"
-            disabled={isLoading} // ✅ Disable while loading
+            disabled={isLoading}
           >
             {isLoading ? "Submitting..." : "SUBMIT"}
           </button>
@@ -137,28 +147,24 @@ const AnxietyTest = () => {
               <div className="chatbot-message bot">
                 <p><strong>AI Counselor:</strong> Thank you for completing the Anxiety (GAD-7) test.</p>
               </div>
-
               <div className="chatbot-message bot">
                 <p>
                   Based on your responses, your <strong>risk level</strong> appears to be{" "}
                   <strong>{result.is_high_risk ? "High" : "Low"}</strong>.
                 </p>
               </div>
-
               <div className="chatbot-message bot">
                 <p>
                   Your <strong>Logistic Regression Score</strong> is {result.lr_score}, and your{" "}
                   <strong>BERT Anomaly Score</strong> is {result.bert_anomaly_score}.
                 </p>
               </div>
-
               <div className="chatbot-message bot">
                 <p>
                   Overall, your <strong>final hybrid risk</strong> is:{" "}
                   <strong>{result.final_risk}</strong>.
                 </p>
               </div>
-
               <div className="chatbot-message bot">
                 {result.is_high_risk ? (
                   <p>
@@ -198,8 +204,12 @@ const AnxietyTest = () => {
       ) : (
         <div className="result-section">
           <h2>Your Result:</h2>
-          <p><strong>Score:</strong> {score} / {questions.length * 3}</p>
-          <p><strong>{result.result}</strong></p>
+          <p>
+            <strong>Score:</strong> {score} / {questions.length * 3}
+          </p>
+          <p>
+            <strong>{result.result}</strong>
+          </p>
           <p>{result.description}</p>
 
           {hybridRisk && (
@@ -216,44 +226,35 @@ const AnxietyTest = () => {
           <ul>
             {questions.map((q, i) => (
               <li key={q.id}>
-                <strong>{i + 1}. {q.text}</strong>
+                <strong>
+                  {i + 1}. {q.text}
+                </strong>
                 <br />
-                <span style={{ color: "#048bb8" }}>Your answer: {answers[i]}</span>
+                <span style={{ color: "#048bb8" }}>
+                  Your answer: {answers[i]}
+                </span>
               </li>
             ))}
           </ul>
-        </div>
-      )}
 
-      {/* MODIFIED BLOCK in AnxietyTest.jsx */}
-      {isChatbotVisible && (
-        <div className="chatbot-wrapper">
-          <Chatbot 
-            combinedScore={score}                 
-            classification={result.result}         
-            hybridRiskData={hybridRisk}           
-            severeAlert={result?.result.startsWith("Severe Anxiety")} 
-          />
-        </div>
-      )}
+          <button
+            onClick={toggleChatbot}
+            ref={chatbotButtonRef}
+            className="footer-button"
+          >
+            {isChatbotVisible ? "Hide Chatbot" : "Open Chatbot"}
+          </button>
 
-      {showResult && (
-        <button onClick={toggleChatbot} ref={chatbotButtonRef} className="footer-button">
-          {isChatbotVisible ? "Hide Chatbot" : "Open Chatbot"}
-        </button>
-      )}
-
-      {isChatbotVisible && (
-        <div className="chatbot-wrapper">
-          <Chatbot severeAlert={result?.result.startsWith("Severe Anxiety")} />
-        </div>
-      )}
-
-      {/* ✅ Loading Overlay (Added) */}
-      {isLoading && (
-        <div className="loading-overlay">
-          <div className="loader"></div>
-          <p>Submitting...</p>
+          {isChatbotVisible && (
+            <div className="chatbot-wrapper">
+              <Chatbot
+                combinedScore={score}
+                classification={result.result}
+                hybridRiskData={hybridRisk}
+                severeAlert={result?.result.startsWith("Severe Anxiety")}
+              />
+            </div>
+          )}
         </div>
       )}
     </div>

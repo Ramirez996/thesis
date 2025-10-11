@@ -101,7 +101,7 @@ const WellTest = () => {
       {isLoading && (
         <div className="loading-overlay">
           <div className="spinner"></div>
-          <p>Submitting...</p>
+           <p>Analyzing your responses...</p>
         </div>
       )}
 
