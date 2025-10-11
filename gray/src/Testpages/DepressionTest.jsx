@@ -213,13 +213,17 @@ const DepressionTest = () => {
             ))}
           </ul>
 
+        {showResult && (
           <button
             onClick={toggleChatbot}
             ref={chatbotButtonRef}
             className="footer-button"
+            disabled={isLoading}
           >
             {isChatbotVisible ? "Hide Chatbot" : "Open Chatbot"}
           </button>
+          )}
+        
 
           {isChatbotVisible && (
             <div className="chatbot-wrapper">
@@ -229,6 +233,7 @@ const DepressionTest = () => {
                 hybridRiskData={hybridRisk}
               />
             </div>
+            
           )}
         </div>
       )}
