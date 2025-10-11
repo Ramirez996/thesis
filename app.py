@@ -330,7 +330,7 @@ def analyze_text(text):
 
 # ---------------- GAD-7 / Anxiety ----------------
 GAD7_WEIGHTS = np.array([0.5,0.7,0.6,0.4,0.6,0.5,0.8])
-GAD7_INTERCEPT = -1.5
+GAD7_INTERCEPT = -5.857  # Adjusted for prob ≈ 0.5 at sum=10 (moderate cutoff)
 
 @app.route('/gad7_risk', methods=['POST'])
 def gad7_risk():
@@ -390,7 +390,7 @@ def gad7_risk():
     })
 
 # ---------------- PHQ-9 / Depression ----------------
-PHQ9_WEIGHTS = np.array([0.6,0.8,0.5,0.7,0.4,0.9,0.6,0.5,1.0])
+PHQ9_WEIGHTS = np.array([0.12, 0.15, 0.1, 0.12, 0.1, 0.15, 0.12, 0.1, 0.14])
 PHQ9_INTERCEPT = -5.555  # Adjusted for prob ≈ 0.5 at sum=10 (moderate cutoff)
 
 @app.route('/phq9_risk', methods=['POST'])
