@@ -5,6 +5,7 @@ import { onAuthStateChanged, signInWithEmailAndPassword } from 'firebase/auth';
 import './PeerSupport.css';
 import { supabase } from '../supabaseClient';
 
+
 // -------------------- Spaces --------------------
 const userSpaces = [
   'Community Support',
