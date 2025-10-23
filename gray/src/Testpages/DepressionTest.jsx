@@ -179,6 +179,46 @@ const DepressionTest = () => {
           </p>
           <p>{result.description}</p>
 
+          <div className="phq9-guidelines">
+  <h3>Guide for Interpreting PHQ-9 Scores</h3>
+  <table className="phq9-table">
+    <thead>
+      <tr>
+        <th>Score</th>
+        <th>Depression Severity</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>0 - 4</td>
+        <td>None-minimal</td>
+        <td>Patient may not need depression treatment.</td>
+      </tr>
+      <tr>
+        <td>5 - 9</td>
+        <td>Mild</td>
+        <td>Use clinical judgment about treatment, based on patient’s duration of symptoms and functional impairment.</td>
+      </tr>
+      <tr>
+        <td>10 - 14</td>
+        <td>Moderate</td>
+        <td>Use clinical judgment about treatment, based on patient’s duration of symptoms and functional impairment.</td>
+      </tr>
+      <tr>
+        <td>15 - 19</td>
+        <td>Moderately severe</td>
+        <td>Treat using antidepressants, psychotherapy, or a combination of treatments.</td>
+      </tr>
+      <tr>
+        <td>20 - 27</td>
+        <td>Severe</td>
+        <td>Treat using antidepressants with or without psychotherapy.</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
           {hybridRisk && (
             <div style={{ marginTop: "2rem" }}>
               <h3>Hybrid Risk Analysis</h3>

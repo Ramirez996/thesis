@@ -196,3 +196,107 @@ submit-button:disabled {
   cursor: not-allowed;
   opacity: 0.7;
 }
+
+.phq9-guidelines {
+  margin-top: 2rem;
+  border-top: 2px solid #ccc;
+  padding-top: 1.5rem;
+}
+
+.phq9-guidelines h3 {
+  margin-bottom: 1rem;
+  color: #036b9c;
+}
+
+.phq9-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 0.8rem;
+}
+
+.phq9-table th,
+.phq9-table td {
+  border: 1px solid #ddd;
+  padding: 6px;
+  text-align: left;
+}
+
+.phq9-table th {
+  background-color: #f3f7fa;
+  color: #333;
+}
+
+.phq9-table tr:nth-child(even) {
+  background-color: #fafafa;
+}
+
+.gad7-guidelines {
+  margin-top: 2rem;
+  border-top: 2px solid #ccc;
+  padding-top: 1.5rem;
+}
+
+.gad7-guidelines h3 {
+  margin-bottom: 1rem;
+  color: #036b9c;
+}
+
+.gad7-guidelines p {
+  margin-bottom: 1rem;
+  line-height: 1.6;
+}
+
+.gad7-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 0.5rem;
+}
+
+.gad7-table th,
+.gad7-table td {
+  border: 1px solid #ddd;
+  padding: 6px;
+  text-align: left;
+}
+
+.gad7-table th {
+  background-color: #f3f7fa;
+  color: #333;
+}
+
+.gad7-table tr:nth-child(even) {
+  background-color: #fafafa;
+}
+
+.scoring-guidelines {
+  /* Restore the boxed background/shadow for a clean, contained look */
+  background: #f8f9fa; /* Light background */
+  padding: 20px;
+  border-radius: 10px;
+  margin-top: 30px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1); /* Subtle shadow for depth */
+  border-top: none; /* Remove the aggressive top border */
+  border-bottom: none; /* Remove the aggressive bottom border */
+  border: 1px solid #e0e0e0; /* Add a subtle overall border */
+}
+
+.scoring-guidelines h3 {
+  color: #045d75;
+  margin-bottom: 10px;
+}
+
+/* Ensure the list inside the guidelines is a standard bullet list */
+.scoring-guidelines ul {
+  list-style: disc; /* Back to regular bullets */
+  margin-left: 20px;
+  margin-top: 10px;
+  padding: 0;
+}
+
+.scoring-guidelines li {
+  /* RESET list item styles from the generic .result-section li */
+  background-color: transparent; /* Remove background */
+  padding: 0; /* Remove padding */
+  border-left: none; /* Remove blue border */
+  margin-bottom: 8px; /* Standard spacing for bullet points */
+}
