@@ -237,6 +237,42 @@ const AnxietyTest = () => {
             ))}
           </ul>
 
+          <div className="gad7-guidelines">
+  <h3>Guide for Interpreting GAD-7 Scores</h3>
+  <p>
+    The GAD-7 is calculated by assigning scores of <strong>0, 1, 2, and 3</strong> to the response
+    categories of “Not at all,” “Several days,” “More than half the days,” and “Nearly every day,” respectively.
+    The total score ranges from <strong>0 to 21</strong>.
+  </p>
+  <table className="gad7-table">
+    <thead>
+      <tr>
+        <th>Score</th>
+        <th>Anxiety Severity</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>0 – 4</td>
+        <td>Minimal Anxiety</td>
+      </tr>
+      <tr>
+        <td>5 – 9</td>
+        <td>Mild Anxiety</td>
+      </tr>
+      <tr>
+        <td>10 – 14</td>
+        <td>Moderate Anxiety</td>
+      </tr>
+      <tr>
+        <td>15 – 21</td>
+        <td>Severe Anxiety</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+
           <button
             onClick={toggleChatbot}
             ref={chatbotButtonRef}
