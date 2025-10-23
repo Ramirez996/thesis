@@ -26,7 +26,7 @@ const optionValues = {
 
 const calculatePersonality = (scores) => {
   return {
-    Extraversion: scores[0] + scores[5],
+    Extraversion: scores[5] + (6 - scores[0]),
     Agreeableness: scores[1] + (6 - scores[6]),
     Conscientiousness: scores[7] + (6 - scores[2]),
     Neuroticism: scores[8] + (6 - scores[3]),
@@ -50,7 +50,7 @@ const PersonalityTest = () => {
   const [score, setScore] = useState(0);
   const [isChatbotVisible, setIsChatbotVisible] = useState(false);
   const chatbotButtonRef = useRef(null);
-  const [isLoading, setIsLoading] = useState(false); // ✅ Added for UX loading
+  const [isLoading, setIsLoading] = useState(false);
 
   const toggleChatbot = () => setIsChatbotVisible((prev) => !prev);
 
@@ -64,22 +64,27 @@ const PersonalityTest = () => {
       return;
     }
 
-    setIsLoading(true); // ✅ Start loading
+    setIsLoading(true);
 
+    // Prepare data
     const scores = Object.values(answers).map((ans) => optionValues[ans]);
     const traits = calculatePersonality(scores);
-    setResult(traits);
-
     const totalScore = scores.reduce((a, b) => a + b, 0);
-    setScore(totalScore);
     const normalizedScore = totalScore / (questions.length * 5);
+    
+    // Set local state immediately
+    setResult(traits);
+    setScore(totalScore);
 
     const traitSummary = Object.entries(traits)
       .map(([trait, value]) => `${trait} score is ${value}.`)
       .join(" ");
+    // Note: answers[9] is the answer to question 10, not the text of question 10
     const textForBert = `My personality traits are: ${traitSummary} ${
       answers[9] ? `I am also: ${answers[9]}` : ""
-    }`;
+    }`; 
+    
+    let apiData = null;
 
     try {
       const res = await fetch(getApiUrl("BFI10_RISK"), {
@@ -94,18 +99,24 @@ const PersonalityTest = () => {
         }),
       });
 
-      const data = await res.json();
-      setHybridRisk(data);
+      apiData = await res.json();
+      setHybridRisk(apiData);
 
-      if (data.is_high_risk) {
+      // 🔥 PRIMARY FIX: Set chatbot visible based on API response
+      if (apiData.is_high_risk) {
         setIsChatbotVisible(true);
       }
     } catch (err) {
       console.error("Error fetching hybrid risk:", err);
+      // Optional Fallback: If API fails, you could trigger the bot based on a high Neuroticism score
+      // if (traits.Neuroticism >= 8) {
+      //   setIsChatbotVisible(true);
+      // }
+    } finally {
+      // Ensure results are shown and loading stops regardless of API success/failure
+      setShowResult(true);
+      setIsLoading(false); 
     }
-
-    setShowResult(true);
-    setIsLoading(false); // ✅ Stop loading
   };
 
   const getClassification = () => {
@@ -125,12 +136,13 @@ const PersonalityTest = () => {
       {isLoading && (
         <div className="loading-overlay">
           <div className="loader"></div>
-           <p>Analyzing your responses...</p>
+          <p>Analyzing your responses...</p>
         </div>
       )}
 
       {!showResult ? (
         <div className="question-section">
+          {/* ... (Questions and Submit button logic) ... */}
           <h1>Personality Test (BFI-10)</h1>
           {questions.map((q, i) => (
             <div key={q.id} className="question-item">
@@ -145,7 +157,7 @@ const PersonalityTest = () => {
                       answers[i] === option ? "selected" : ""
                     }`}
                     onClick={() => handleOptionSelect(i, option)}
-                    disabled={isLoading} // ✅ Disable while loading
+                    disabled={isLoading}
                   >
                     {option}
                   </button>
@@ -156,7 +168,7 @@ const PersonalityTest = () => {
           <button
             className="submit-button"
             onClick={handleSubmit}
-            disabled={isLoading} // Disable submit while loading
+            disabled={isLoading}
           >
             {isLoading ? "Submitting..." : "SUBMIT"}
           </button>
@@ -191,6 +203,36 @@ const PersonalityTest = () => {
             ))}
           </ul>
 
+          {/* === BFI-10 Scoring Guidelines === */}
+          <div className="scoring-guidelines" style={{ marginTop: "2rem" }}>
+            <h3>BFI-10 Scoring Guidelines:</h3>
+            <p>
+              The BFI-10 (Big Five Inventory – 10 Item Version) measures five broad personality
+              dimensions: <strong>Extraversion, Agreeableness, Conscientiousness, Neuroticism,</strong> and 
+              <strong> Openness to Experience</strong>. Each trait is scored using two items, some of which are reverse-coded.
+            </p>
+            <p><strong>Scoring the BFI‐10 scales</strong> (R = item is reverse‐scored):</p>
+            <ul>
+              <li><strong>Extraversion:</strong> 1R, 6</li>
+              <li><strong>Agreeableness:</strong> 2, 7R</li>
+              <li><strong>Conscientiousness:</strong> 3R, 8</li>
+              <li><strong>Neuroticism:</strong> 4R, 9</li>
+              <li><strong>Openness to Experience:</strong> 5R, 10</li>
+            </ul>
+            <p>
+              <strong>Reverse-scored items (marked “R”):</strong> For these questions, reverse the scoring before
+              summing the trait score (e.g., 1 → 5, 2 → 4, 3 → 3, 4 → 2, 5 → 1).
+            </p>
+            <p>
+              Each trait score is the <strong>sum of its two items</strong>, ranging from 2 to 10. 
+              Higher scores indicate stronger expression of that personality dimension.
+            </p>
+            <p>
+              <strong>Interpretation:</strong> The BFI-10 provides a concise overview of personality traits 
+              and is useful for research and screening purposes, but not for clinical diagnosis.
+            </p>
+          </div>
+
           {hybridRisk && (
             <div className="hybrid-risk-section">
               <h3>Hybrid Risk Analysis</h3>
@@ -213,6 +255,20 @@ const PersonalityTest = () => {
         </div>
       )}
 
+      {/* FINAL CHATBOT AND BUTTON LOGIC */}
+
+      {showResult && (
+        <button
+          onClick={toggleChatbot}
+          ref={chatbotButtonRef}
+          className="footer-button"
+          disabled={isLoading} 
+        >
+          {isChatbotVisible ? "Hide Alarm bot" : "Open Alarm bot"}
+        </button>
+      )}
+
+      {/* Ensure Chatbot only renders when all required props (result and hybridRisk) are available */}
       {isChatbotVisible && result && hybridRisk && (
         <div className="chatbot-wrapper">
           <Chatbot
@@ -222,17 +278,6 @@ const PersonalityTest = () => {
             severeAlert={hybridRisk.is_high_risk}
           />
         </div>
-      )}
-
-      {showResult && (
-        <button
-          onClick={toggleChatbot}
-          ref={chatbotButtonRef}
-          className="footer-button"
-          disabled={isLoading} // ✅ disable during loading
-        >
-          {isChatbotVisible ? "Hide Alarm bot" : "Open Alarm bot"}
-        </button>
       )}
     </div>
   );
