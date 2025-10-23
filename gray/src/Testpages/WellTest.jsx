@@ -192,28 +192,6 @@ const WellTest = () => {
           </p>
           <p>{result.description}</p>
 
-                              {/* === Hybrid Risk Assessment (Only renders if data is present) === */}
-          {hybridRisk && (
-            <div className="hybrid-risk-section">
-              <h3>Hybrid Risk Assessment</h3>
-              <p>
-                <strong>BERT Score:</strong> {hybridRisk.bert_score ?? "N/A"}
-              </p>
-              <p>
-                <strong>Logistic Regression Score:</strong>{" "}
-                {hybridRisk.lr_score ?? "N/A"}
-              </p>
-              <p>
-                <strong>Hybrid Score:</strong> {hybridRisk.hybrid_score}
-              </p>
-              <p>
-                <strong>Risk Level:</strong> {hybridRisk.risk_level}
-              </p>
-            </div>
-          )}
-        </div>
-      )}
-
           {/* === WHO-5 Scoring Guidelines (BOXED STYLE) === */}
           <div className="scoring-guidelines" style={{ marginTop: "2rem" }}>
             <h3>WHO-5 Scoring Guidelines:</h3>
@@ -248,6 +226,27 @@ const WellTest = () => {
               </li>
             ))}
           </ul>
+                              {/* === Hybrid Risk Assessment (Only renders if data is present) === */}
+          {hybridRisk && (
+            <div className="hybrid-risk-section">
+              <h3>Hybrid Risk Assessment</h3>
+              <p>
+                <strong>BERT Score:</strong> {hybridRisk.bert_score ?? "N/A"}
+              </p>
+              <p>
+                <strong>Logistic Regression Score:</strong>{" "}
+                {hybridRisk.lr_score ?? "N/A"}
+              </p>
+              <p>
+                <strong>Hybrid Score:</strong> {hybridRisk.hybrid_score}
+              </p>
+              <p>
+                <strong>Risk Level:</strong> {hybridRisk.risk_level}
+              </p>
+            </div>
+          )}
+        </div>
+      )}
 
       {isChatbotVisible && result && (
         <div className="chatbot-wrapper">
