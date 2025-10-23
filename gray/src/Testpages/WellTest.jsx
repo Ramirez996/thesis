@@ -215,19 +215,8 @@ const WellTest = () => {
               If your score is low, consider discussing your results with a qualified healthcare provider.
             </p>
           </div>
-          
-          {/* === Your Answers (BOXED LIST STYLE) === */}
-          <h3 style={{ marginTop: '2rem' }}>Your Answers:</h3>
-          <ul>
-            {questions.map((q, i) => (
-              <li key={q.id}>
-                <strong>{i + 1}. {q.text}</strong><br />
-                <span style={{ color: "#048bb8" }}>Your answer: {answers[i]}</span>
-              </li>
-            ))}
-          </ul>
-          
-          {/* === Hybrid Risk Assessment (Only renders if data is present) === */}
+
+                    {/* === Hybrid Risk Assessment (Only renders if data is present) === */}
           {hybridRisk && (
             <div className="hybrid-risk-section">
               <h3>Hybrid Risk Assessment</h3>
@@ -248,6 +237,17 @@ const WellTest = () => {
           )}
         </div>
       )}
+          
+          {/* === Your Answers (BOXED LIST STYLE) === */}
+          <h3 style={{ marginTop: '2rem' }}>Your Answers:</h3>
+          <ul>
+            {questions.map((q, i) => (
+              <li key={q.id}>
+                <strong>{i + 1}. {q.text}</strong><br />
+                <span style={{ color: "#048bb8" }}>Your answer: {answers[i]}</span>
+              </li>
+            ))}
+          </ul>
 
       {isChatbotVisible && result && (
         <div className="chatbot-wrapper">
