@@ -20,30 +20,45 @@ const optionValues = {
   "All of the time": 5,
 };
 
-const calculateWellBeing = (score) => {
-  const isHighRisk = score < 13;
+const calculateWellBeing = (rawScore) => {
+  const percentageScore = rawScore * 4;
+  let result = "";
+  let description = "";
+  let isHighRisk = false;
 
-  if (score >= 21) return { result: "Excellent Well-being – Keep up the great work!", description: "You seem to be experiencing a strong sense of well-being. Keep doing what you're doing, and stay mindful of your mental and emotional health.", is_high_risk: isHighRisk };
-  if (score >= 16) return { result: "Good Well-being – You're doing well!", description: "You are generally feeling well. Continue with your positive habits and take time for regular self-care.", is_high_risk: isHighRisk };
-  if (score >= 11) return { result: "Fair Well-being – Consider taking time for self-care.", description: "You're doing okay, but it might help to prioritize relaxation and enjoyable activities. Pay attention to your mental health and take breaks when needed.", is_high_risk: isHighRisk };
-  if (score >= 6) return { result: "Poor Well-being – It's important to focus on your well-being.", description: "You're likely under some stress or emotional fatigue. Make time for rest and self-care, and talk to someone if you're feeling overwhelmed.", is_high_risk: isHighRisk };
-  return { result: "Very Poor Well-being – Please consider reaching out for support.", description: "Your score suggests that you may be struggling with your well-being. You're not alone, and it’s okay to seek support from a counselor, therapist, or someone you trust.", is_high_risk: isHighRisk };
+  if (percentageScore <= 28) {
+    result = "Indicative of Depression";
+    description =
+      "Your score suggests a high likelihood of depression. It’s important to reach out to a mental health professional or counselor for further assessment and support.";
+    isHighRisk = true;
+  } else if (percentageScore < 50) {
+    result = "Poor Well-being (Possible Depression)";
+    description =
+      "Your well-being may be lower than average. Consider engaging in self-care, social connection, and if necessary, consulting a healthcare provider.";
+    isHighRisk = true;
+  } else {
+    result = "Good Well-being";
+    description =
+      "You seem to be experiencing a satisfactory level of well-being. Keep maintaining your healthy habits and stay mindful of your emotional state.";
+  }
+
+  return { result, description, percentageScore, is_high_risk: isHighRisk };
 };
 
 const WellTest = () => {
   const [answers, setAnswers] = useState({});
   const [showResult, setShowResult] = useState(false);
   const [result, setResult] = useState(null);
-  const [score, setScore] = useState(0);
+  const [rawScore, setRawScore] = useState(0);
   const [hybridRisk, setHybridRisk] = useState(null);
   const [isChatbotVisible, setIsChatbotVisible] = useState(false);
   const chatbotButtonRef = useRef(null);
-  const [isLoading, setIsLoading] = useState(false); // ✅ Added for UX loading
+  const [isLoading, setIsLoading] = useState(false);
 
-  const toggleChatbot = () => setIsChatbotVisible(prev => !prev);
+  const toggleChatbot = () => setIsChatbotVisible((prev) => !prev);
 
   const handleOptionSelect = (index, option) => {
-    setAnswers(prev => ({ ...prev, [index]: option }));
+    setAnswers((prev) => ({ ...prev, [index]: option }));
   };
 
   const handleSubmit = async () => {
@@ -52,24 +67,24 @@ const WellTest = () => {
       return;
     }
 
-    setIsLoading(true); // ✅ Start loading
+    setIsLoading(true);
 
     const answersList = Object.values(answers);
-    const numericAnswers = answersList.map(ans => optionValues[ans]);
-    const totalScore = numericAnswers.reduce((a, b) => a + b, 0);
+    const numericAnswers = answersList.map((ans) => optionValues[ans]);
+    const totalRawScore = numericAnswers.reduce((a, b) => a + b, 0);
 
-    const testResult = calculateWellBeing(totalScore);
-
-    setScore(totalScore);
+    const testResult = calculateWellBeing(totalRawScore);
+    setRawScore(totalRawScore);
 
     try {
-      const res = await fetch(getApiUrl('WHO5_RISK'), {
+      const res = await fetch(getApiUrl("WHO5_RISK"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           user_name: "Anonymous",
           answers: numericAnswers,
-          score: totalScore,
+          score: totalRawScore,
+          percentage_score: testResult.percentageScore,
           result_text: testResult.result,
           description: testResult.description,
           text: answersList.join(". "),
@@ -80,7 +95,7 @@ const WellTest = () => {
       setHybridRisk(data);
       setResult({
         ...testResult,
-        is_high_risk: data.is_high_risk,
+        is_high_risk: data.is_high_risk ?? testResult.is_high_risk,
       });
 
       if (data.is_high_risk) {
@@ -92,16 +107,16 @@ const WellTest = () => {
     }
 
     setShowResult(true);
-    setIsLoading(false); // ✅ Stop loading
+    setIsLoading(false);
   };
 
   return (
     <div className="test-container">
-      {/* ✅ Loading Overlay */}
+      {/* Loading Overlay */}
       {isLoading && (
         <div className="loading-overlay">
           <div className="spinner"></div>
-           <p>Analyzing your responses...</p>
+          <p>Analyzing your responses...</p>
         </div>
       )}
 
@@ -110,12 +125,16 @@ const WellTest = () => {
           <h1>Well-Being Test (WHO-5)</h1>
           {questions.map((q, i) => (
             <div key={q.id} className="question-item">
-              <p>{i + 1}. {q.text}</p>
+              <p>
+                {i + 1}. {q.text}
+              </p>
               <div className="button-options">
-                {q.options.map(option => (
+                {q.options.map((option) => (
                   <button
                     key={option}
-                    className={`option-button ${answers[i] === option ? "selected" : ""}`}
+                    className={`option-button ${
+                      answers[i] === option ? "selected" : ""
+                    }`}
                     onClick={() => handleOptionSelect(i, option)}
                     disabled={isLoading}
                   >
@@ -125,48 +144,80 @@ const WellTest = () => {
               </div>
             </div>
           ))}
-          <button className="submit-button" onClick={handleSubmit} disabled={isLoading}>
+          <button
+            className="submit-button"
+            onClick={handleSubmit}
+            disabled={isLoading}
+          >
             {isLoading ? "Submitting..." : "SUBMIT"}
           </button>
 
           <div className="test-source">
             <h2>Source:</h2>
             <p>
-              The WHO-5 was developed during the 1990s by the late Per Bech of the Psychiatric
-              Centre North Zealand (Copenhagen, Denmark), which hosted a WHO Collaborating
-              Centre for Mental Health. The WHO-5 was derived from other scales and studies by the
-              WHO Regional Office in Europe
+              The WHO-5 was developed during the 1990s by the late Per Bech of
+              the Psychiatric Centre North Zealand (Copenhagen, Denmark), which
+              hosted a WHO Collaborating Centre for Mental Health. The WHO-5 was
+              derived from other scales and studies by the WHO Regional Office
+              in Europe.
             </p>
             <a
-              href="https://cdn.who.int/media/docs/default-source/mental-health/who-5_english-original4da539d6ed4b49389e3afe47cda2326a.pdf?sfvrsn=ed43f352_11&download#:~:text=The%20WHO%2D5%20was%20developed,Europe%20%5B1%5D%5B2%5D."
+              href="https://cdn.who.int/media/docs/default-source/mental-health/who-5_english-original4da539d6ed4b49389e3afe47cda2326a.pdf"
               target="_blank"
               rel="noopener noreferrer"
             >
-              https://cdn.who.int/media/docs/default-source/mental-health/who-5_english-original4da539d6ed4b49389e3afe47cda2326a.pdf
+              https://cdn.who.int/media/docs/default-source/mental-health/who-5_english-original.pdf
             </a>
             <p>
-              <strong>Please note:</strong> Online screening tools are not diagnostic instruments. You are encouraged to share your results with a physician or healthcare provider. Mental Health Assessment and the researchers disclaim any liability, loss, or risk incurred as a consequence, directly or indirectly, from the use and application of these screens.
+              <strong>Please note:</strong> Online screening tools are not
+              diagnostic instruments. You are encouraged to share your results
+              with a physician or healthcare provider. Mental Health Assessment
+              and the researchers disclaim any liability, loss, or risk incurred
+              as a consequence, directly or indirectly, from the use and
+              application of these screens.
             </p>
           </div>
         </div>
       ) : (
         <div className="result-section">
           <h2>Your Result:</h2>
-          <p><strong>Score:</strong> {score} / {questions.length * 5}</p>
-          <p><strong>{result.result}</strong></p>
+          <p>
+            <strong>Raw Score:</strong> {rawScore} / 25
+          </p>
+          <p>
+            <strong>Percentage Score:</strong> {result.percentageScore}%
+          </p>
+          <p>
+            <strong>{result.result}</strong>
+          </p>
           <p>{result.description}</p>
 
-          {hybridRisk && (
-            <div className="hybrid-risk-section">
-              <h3>Hybrid Risk Assessment</h3>
-              <p><strong>BERT Score:</strong> {hybridRisk.bert_score ?? "N/A"}</p>
-              <p><strong>Logistic Regression Score:</strong> {hybridRisk.lr_score ?? "N/A"}</p>
-              <p><strong>Hybrid Score:</strong> {hybridRisk.hybrid_score}</p>
-              <p><strong>Risk Level:</strong> {hybridRisk.risk_level}</p>
-            </div>
-          )}
-
-          <h3>Your Answers:</h3>
+          {/* === WHO-5 Scoring Guidelines (BOXED STYLE) === */}
+          <div className="scoring-guidelines" style={{ marginTop: "2rem" }}>
+            <h3>WHO-5 Scoring Guidelines:</h3>
+            <p>
+              <strong>Raw Score:</strong> Calculated by summing the responses to the five questions, 
+              resulting in a total between <strong>0 and 25</strong>.
+            </p>
+            <p>
+              <strong>Percentage Score:</strong> Multiply the raw score by <strong>4</strong> to convert 
+              it to a scale from <strong>0 to 100</strong>.
+            </p>
+            <p>
+              <strong>Interpretation:</strong>
+            </p>
+            <ul>
+              <li>Scores of <strong>&lt; 50</strong> indicate <em>poor well-being</em> and suggest the need for further investigation into possible symptoms of depression.</li>
+              <li>Scores of <strong>≤ 28</strong> are <em>indicative of depression</em>.</li>
+            </ul>
+            <p>
+              <strong>Note:</strong> The WHO-5 is a screening tool and not a diagnostic instrument. 
+              If your score is low, consider discussing your results with a qualified healthcare provider.
+            </p>
+          </div>
+          
+          {/* === Your Answers (BOXED LIST STYLE) === */}
+          <h3 style={{ marginTop: '2rem' }}>Your Answers:</h3>
           <ul>
             {questions.map((q, i) => (
               <li key={q.id}>
@@ -175,13 +226,33 @@ const WellTest = () => {
               </li>
             ))}
           </ul>
+          
+          {/* === Hybrid Risk Assessment (Only renders if data is present) === */}
+          {hybridRisk && (
+            <div className="hybrid-risk-section">
+              <h3>Hybrid Risk Assessment</h3>
+              <p>
+                <strong>BERT Score:</strong> {hybridRisk.bert_score ?? "N/A"}
+              </p>
+              <p>
+                <strong>Logistic Regression Score:</strong>{" "}
+                {hybridRisk.lr_score ?? "N/A"}
+              </p>
+              <p>
+                <strong>Hybrid Score:</strong> {hybridRisk.hybrid_score}
+              </p>
+              <p>
+                <strong>Risk Level:</strong> {hybridRisk.risk_level}
+              </p>
+            </div>
+          )}
         </div>
       )}
 
       {isChatbotVisible && result && (
         <div className="chatbot-wrapper">
           <Chatbot
-            combinedScore={score}
+            combinedScore={rawScore}
             classification={result.result}
             hybridRiskData={hybridRisk}
             severeAlert={hybridRisk?.is_high_risk}
@@ -190,7 +261,11 @@ const WellTest = () => {
       )}
 
       {showResult && (
-        <button onClick={toggleChatbot} ref={chatbotButtonRef} className="footer-button">
+        <button
+          onClick={toggleChatbot}
+          ref={chatbotButtonRef}
+          className="footer-button"
+        >
           {isChatbotVisible ? "Hide Chatbot" : "Open Chatbot"}
         </button>
       )}
