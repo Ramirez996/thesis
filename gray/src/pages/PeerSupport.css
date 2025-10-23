@@ -129,6 +129,7 @@
   display: flex;
   gap: 10px;
   margin-top: 10px;
+
 }
 
 .comment-area input {
@@ -137,6 +138,8 @@
   border-radius: 6px;
   border: 1px solid #cbd5e0;
   font-size: 0.95rem;
+  background-color: rgb(255, 254, 254);
+  color: black;
 }
 
 .comment-area button {
@@ -156,7 +159,7 @@
 .comment-text {
   margin-left: 14px;
   margin-top: 6px;
-  color: #444;
+  color: #d4cdcd;
   font-size: 0.9rem;
 }
 
@@ -256,9 +259,11 @@
   line-height: 1.6;
 }
 
-.comment-area {
+.comment-area{
   margin-top: 10px;
+  
 }
+
 
 .comment-text {
   font-size: 12px;
