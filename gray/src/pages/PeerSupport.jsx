@@ -39,6 +39,7 @@ const PeerSupport = ({ initialSpace = 'Community Support' }) => {
     return initial;
   });
 
+  // We'll keep comments in a separate map: { post_id: [comments...] }
   const [commentsByPost, setCommentsByPost] = useState({});
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -46,11 +47,13 @@ const PeerSupport = ({ initialSpace = 'Community Support' }) => {
   const [email, setEmail] = useState('');
   const [csvFile, setCsvFile] = useState(null);
 
+  // Username & auth
   const [username, setUsername] = useState('');
   const [showUsernamePrompt, setShowUsernamePrompt] = useState(false);
   const [tempUsername, setTempUsername] = useState('');
   const [currentUser, setCurrentUser] = useState(null);
 
+  // Backend endpoints
   const ANALYZE_URL = 'https://thesis-mental-health-production.up.railway.app/analyze';
   const CSV_UPLOAD_URL = 'https://thesis-mental-health-production.up.railway.app/upload_csv';
 
@@ -107,6 +110,7 @@ const PeerSupport = ({ initialSpace = 'Community Support' }) => {
   useEffect(() => {
     const fetchData = async () => {
       try {
+        // Fetch posts
         const { data: postsData, error: postsError } = await supabase
           .from('posts')
           .select('*')
@@ -114,6 +118,7 @@ const PeerSupport = ({ initialSpace = 'Community Support' }) => {
 
         if (postsError) throw postsError;
 
+        // Group posts by space
         const grouped = {};
         [...userSpaces, ...adminSpaces, ...relatedCommunities].forEach(space => {
           grouped[space] = [];
@@ -124,6 +129,7 @@ const PeerSupport = ({ initialSpace = 'Community Support' }) => {
 
         setPosts(grouped);
 
+        // Fetch comments
         const { data: commentsData, error: commentsError } = await supabase
           .from('comments')
           .select('*')
@@ -147,6 +153,7 @@ const PeerSupport = ({ initialSpace = 'Community Support' }) => {
 
   // -------------------- Realtime subscriptions --------------------
   useEffect(() => {
+    // Posts realtime
     const postsChannel = supabase
       .channel('posts-changes')
       .on(
@@ -178,6 +185,7 @@ const PeerSupport = ({ initialSpace = 'Community Support' }) => {
       )
       .subscribe();
 
+    // Comments realtime
     const commentsChannel = supabase
       .channel('comments-changes')
       .on(
@@ -215,26 +223,17 @@ const PeerSupport = ({ initialSpace = 'Community Support' }) => {
   // -------------------- Posting --------------------
   const handlePost = async () => {
     if (!postInput.trim()) return;
-
-    if (!isAdmin && !username.trim()) {
+    if (!isAdmin && !username) {
       setShowUsernamePrompt(true);
       return;
     }
 
     const user = auth.currentUser;
-    let userName = 'Anonymous';
-
-    if (isAdmin && user) {
-      userName = user.email;
-    } else if (username.trim()) {
-      userName = username.trim();
-    } else if (user) {
-      const storedUsernames = JSON.parse(localStorage.getItem('peer_usernames') || '{}');
-      if (storedUsernames[user.uid]) userName = storedUsernames[user.uid];
-    }
+    const userName = isAdmin && user ? user.email : username || 'Anonymous';
 
     setIsPosting(true);
     try {
+      // Send to Flask emotion analyzer
       const resp = await fetch(ANALYZE_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -243,6 +242,7 @@ const PeerSupport = ({ initialSpace = 'Community Support' }) => {
       const analysis = resp.ok ? await resp.json() : { label: 'neutral' };
       const emotion = analysis.label || 'neutral';
 
+      // Insert into Supabase posts table
       const { data, error } = await supabase
         .from('posts')
         .insert([
@@ -546,17 +546,29 @@ const PostCard = ({ post, space, posts, setPosts, isAdmin, username, comments = 
           ...prev,
           [post.id]: [...(prev[post.id] || []), inserted],
         }));
+        setCommentText('');
       }
-
-      setCommentText('');
     } catch (err) {
-      console.error('Comment error:', err);
-      alert('Failed to add comment.');
+      console.error('Add comment failed:', err);
     }
   };
 
-  const handleDeletePost = async () => {
-    if (!window.confirm('Are you sure you want to delete this post?')) return;
+  const handleSetUsername = () => {
+    if (!tempUsername.trim()) return;
+    const user = auth.currentUser;
+    if (!user) return;
+
+    const storedUsernames = JSON.parse(localStorage.getItem('peer_usernames') || '{}');
+    storedUsernames[user.uid] = tempUsername;
+    localStorage.setItem('peer_usernames', JSON.stringify(storedUsernames));
+    setCommenterUsername(tempUsername);
+    setShowUsernamePrompt(false);
+    setTempUsername('');
+  };
+
+  const deletePost = async () => {
+    if (!isAdmin) return;
+    if (!window.confirm('Delete this post?')) return;
     setIsDeleting(true);
     try {
       await supabase.from('posts').delete().eq('id', post.id);
@@ -565,29 +577,26 @@ const PostCard = ({ post, space, posts, setPosts, isAdmin, username, comments = 
         [space]: prev[space].filter(p => p.id !== post.id),
       }));
     } catch (err) {
-      console.error(err);
-      alert('Failed to delete post.');
+      console.error('Delete post failed:', err);
     } finally {
       setIsDeleting(false);
     }
   };
 
   return (
-    <div className={`post-card ${auth.currentUser && post.user_name === username ? 'my-post' : ''}`}>
+    <div className="post-card">
       <div className="post-header">
-        <span className="username">{post.user_name}</span>
-        <span className="emotion">({post.emotion})</span>
-        {isAdmin && <button onClick={handleDeletePost} disabled={isDeleting}>Delete</button>}
+        <strong>{post.user_name}</strong>
+        {isAdmin && <button onClick={deletePost}>🗑️</button>}
       </div>
-      <div className="post-body">{post.text}</div>
-
+      <div className="post-text">{post.text}</div>
       <div className="comments-section">
         {comments.map(c => (
           <div key={c.id} className="comment">
             <strong>{c.user_name}</strong>: {c.text}
           </div>
         ))}
-        <div className="comment-box">
+        <div className="add-comment">
           <input
             type="text"
             placeholder="Write a comment..."
@@ -598,7 +607,6 @@ const PostCard = ({ post, space, posts, setPosts, isAdmin, username, comments = 
         </div>
       </div>
 
-      {/* Username Modal */}
       {showUsernamePrompt && (
         <div className="username-modal">
           <div className="username-modal-content">
@@ -609,25 +617,12 @@ const PostCard = ({ post, space, posts, setPosts, isAdmin, username, comments = 
               value={tempUsername}
               onChange={(e) => setTempUsername(e.target.value)}
             />
-            <button
-              onClick={() => {
-                if (!tempUsername.trim()) return;
-                const user = auth.currentUser;
-                if (user) {
-                  const storedUsernames = JSON.parse(localStorage.getItem('peer_usernames') || '{}');
-                  storedUsernames[user.uid] = tempUsername;
-                  localStorage.setItem('peer_usernames', JSON.stringify(storedUsernames));
-                  setCommenterUsername(tempUsername);
-                  setShowUsernamePrompt(false);
-                  setTempUsername('');
-                }
-              }}
-            >
-              Save
-            </button>
+            <button onClick={handleSetUsername}>Save</button>
           </div>
         </div>
       )}
+
+      {isDeleting && <div className="deleting-overlay">Deleting...</div>}
     </div>
   );
 };
