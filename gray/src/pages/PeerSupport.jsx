@@ -2,6 +2,29 @@ import React, { useState, useEffect } from 'react';
 import { auth } from '../firebase/firebase';
 import { onAuthStateChanged, signInWithEmailAndPassword } from 'firebase/auth';
 import './PeerSupport.css';
+import { supabase } from '../supabaseClient'; 
+
+// =========================================================================
+// ✅ FIX: PostCard component defined locally to prevent white screen crash
+// =========================================================================
+const PostCard = ({ post, space, posts, setPosts, isAdmin }) => {
+    return (
+        <div className={`post-card ${post.emotion}`}>
+            <div className="post-header">
+                <span className="post-user">{post.user_name}</span>
+                <span className="post-time">
+                    {new Date(post.created_at).toLocaleString()}
+                </span>
+            </div>
+            <p className="post-text">{post.text}</p>
+            <div className="post-footer">
+                <span className="post-emotion">Emotion: {post.emotion}</span>
+                {/* You can add comment/delete logic here */}
+            </div>
+        </div>
+    );
+};
+// =========================================================================
 
 const userSpaces = [
   'Community Support',
@@ -17,11 +40,12 @@ const adminSpaces = [
   'Admin Actions',
 ];
 
+// ✅ Categories 
 const relatedCommunities = [
-  'Anxiety',
   'Depression',
-  'Well-Being',
-  'Personality'
+  'Anxiety',
+  'Personality',
+  'Well-Being'
 ];
 
 const PeerSupport = ({ initialSpace = 'Community Support' }) => {
@@ -40,43 +64,68 @@ const PeerSupport = ({ initialSpace = 'Community Support' }) => {
   const [isPosting, setIsPosting] = useState(false);
   const [email, setEmail] = useState('');
   const [csvFile, setCsvFile] = useState(null);
-  const [username, setUsername] = useState('');
-  const [showUsernamePrompt, setShowUsernamePrompt] = useState(false);
-  const [tempUsername, setTempUsername] = useState('');
-  const [currentUser, setCurrentUser] = useState(null);
 
-  // --- HANDLE USER AUTH AND USERNAME STORAGE ---
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, user => {
       if (user) {
-        setCurrentUser(user);
         setIsAdmin(user.email === 'admin@gmail.com');
-        const storedUsernames = JSON.parse(localStorage.getItem('peer_usernames') || '{}');
-        const userSpecificName = storedUsernames[user.uid];
-        if (userSpecificName) {
-          setUsername(userSpecificName);
-        } else {
-          setShowUsernamePrompt(true); // ask if not set
-        }
-      } else {
-        setCurrentUser(null);
       }
       setLoading(false);
     });
     return () => unsubscribe();
   }, []);
 
-  const handleSetUsername = () => {
-    if (!tempUsername.trim()) {
-      alert('Please enter a valid username.');
-      return;
-    }
-    const storedUsernames = JSON.parse(localStorage.getItem('peer_usernames') || '{}');
-    storedUsernames[currentUser.uid] = tempUsername;
-    localStorage.setItem('peer_usernames', JSON.stringify(storedUsernames));
-    setUsername(tempUsername);
-    setShowUsernamePrompt(false);
-  };
+  // 1️⃣ Fetch posts from Supabase on mount
+  useEffect(() => {
+    const fetchPosts = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('posts')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        // Group posts by their space name
+        const grouped = {};
+        [...userSpaces, ...adminSpaces, ...relatedCommunities].forEach(space => {
+          grouped[space] = [];
+        });
+        data.forEach(post => {
+          if (grouped[post.space]) {
+            grouped[post.space].push(post);
+          }
+        });
+
+        setPosts(grouped);
+      } catch (error) {
+        console.error('Error loading posts:', error);
+      }
+    };
+
+    fetchPosts();
+  }, []); 
+
+  // 2️⃣ Realtime subscription for new posts
+  useEffect(() => {
+    const channel = supabase
+      .channel('posts-changes')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'posts' },
+        payload => {
+          setPosts(prev => ({
+            ...prev,
+            [payload.new.space]: [payload.new, ...(prev[payload.new.space] || [])],
+          }));
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -94,41 +143,48 @@ const PeerSupport = ({ initialSpace = 'Community Support' }) => {
 
   const handlePost = async () => {
     if (!postInput.trim()) return;
-    if (!isAdmin && !username) {
-      setShowUsernamePrompt(true);
-      return;
-    }
-
     const user = auth.currentUser;
-    const userName = isAdmin && user ? user.email : username;
+    const userName = isAdmin && user ? user.email : 'Anonymous';
+
     setIsPosting(true);
 
     try {
-      const response = await fetch('http://127.0.0.1:5000/analyze', {
+      // Step 1️⃣ — Send text to Flask backend (Railway)
+      const response = await fetch('https://thesis-mental-health-production.up.railway.app/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text: postInput }),
       });
 
-      const analysis = response.ok ? await response.json() : { label: 'neutral' };
+      const analysis = await response.json();
       const emotion = analysis.label || 'neutral';
 
-      const savedPost = {
-        id: Date.now(),
-        text: postInput,
-        userName,
-        emotion,
-        comments: []
-      };
+      // Step 2️⃣ — Save the post in Supabase (This should now work for 'Depression')
+      const { data, error } = await supabase
+        .from('posts')
+        .insert([
+          {
+            text: postInput,
+            user_name: userName,
+            emotion: emotion,
+            space: activeSpace,
+            created_at: new Date(),
+          },
+        ])
+        .select();
 
+      if (error) throw error;
+
+      // Step 3️⃣ — Add to local state
       setPosts(prev => ({
         ...prev,
-        [activeSpace]: [savedPost, ...prev[activeSpace]],
+        [activeSpace]: [data[0], ...prev[activeSpace]],
       }));
+
       setPostInput('');
     } catch (error) {
-      console.error('Failed to handle post:', error);
-      alert('Error posting — Flask backend might be offline.');
+      console.error('Failed to post:', error);
+      alert('Failed to post — please try again.');
     } finally {
       setIsPosting(false);
     }
@@ -139,20 +195,7 @@ const PeerSupport = ({ initialSpace = 'Community Support' }) => {
       alert('Please select a CSV file.');
       return;
     }
-    const formData = new FormData();
-    formData.append('file', csvFile);
-
-    try {
-      const response = await fetch('http://127.0.0.1:5000/upload_csv', {
-        method: 'POST',
-        body: formData,
-      });
-      const result = await response.json();
-      alert(result.message || 'Upload successful!');
-    } catch (error) {
-      console.error('CSV upload error:', error);
-      alert('Upload failed.');
-    }
+    alert('CSV upload simulated — replace with backend endpoint.');
   };
 
   if (isPosting) {
@@ -166,7 +209,7 @@ const PeerSupport = ({ initialSpace = 'Community Support' }) => {
 
   const renderCommunityPage = (community) => (
     <div className="community-page">
-      <h3>{community} Community 💬</h3>
+      <h3>{community} Discussion 💬</h3>
       <div className="posts-list">
         {posts[community]?.map(post => (
           <PostCard
@@ -176,7 +219,6 @@ const PeerSupport = ({ initialSpace = 'Community Support' }) => {
             posts={posts}
             setPosts={setPosts}
             isAdmin={isAdmin}
-            username={username}
           />
         ))}
       </div>
@@ -221,37 +263,6 @@ const PeerSupport = ({ initialSpace = 'Community Support' }) => {
             This platform was developed as part of the thesis project: <br />
             <strong>"Mental Health Assessment Using Logistic Regression and BERT-based NLP for Early Detection of Psychological Distress"</strong>.
           </p>
-
-          <ul className="developer-team">
-            <li>👨‍💻 <strong>Marc Rainier B. Buitizon</strong> – Lead Programmer</li>
-            <li>📋 <strong>Jeffrey B. Ramirez</strong> – Project Leader</li>
-            <li>🛠 <strong>Gabriela C. Enriquez</strong> – System Manager</li>
-            <li>🎨 <strong>Jensha P. Maniflor</strong> – Designer</li>
-          </ul>
-
-          <p>
-            Our goal is to integrate a BERT NLP model for sentiment analysis with peer support and to combine its result with a Logistic Regression Algorithm to encourage early detection 
-            of psychological distress while providing a safe and anonymous platform for sharing thoughts.
-          </p>
-          <p className="note">
-            💡 Disclaimer: This platform does not replace professional diagnosis or treatment. 
-            If you’re in crisis, please seek immediate help from a licensed professional or 
-            mental health hotline.
-          </p>
-        </div>
-      );
-    }
-
-    if (activeSpace === 'About System') {
-      return (
-        <div className="about-system">
-          <h3>🖥️ About the System</h3>
-          <p>
-            This system is designed to help people understand and self-evaluate their mental well-being using Artificial Intelligence. 
-            There are tests for anxiety, depression, general well-being, and personality traits. 
-            The scoring is analyzed via a logistic regression model to classify results by risk level. 
-            An AI chatbot supports guided reflection, and peer support allows safe, anonymous sharing and encouragement.
-          </p>
         </div>
       );
     }
@@ -267,7 +278,6 @@ const PeerSupport = ({ initialSpace = 'Community Support' }) => {
               posts={posts}
               setPosts={setPosts}
               isAdmin={isAdmin}
-              username={username}
             />
           ))}
         </div>
@@ -304,9 +314,7 @@ const PeerSupport = ({ initialSpace = 'Community Support' }) => {
       <main className="main-content">
         <div className="space-header">
           <h2>{activeSpace}</h2>
-          <p className="anonymous-note">
-            Posting as: <strong>{isAdmin ? 'Admin' : username || 'Set Username'}</strong>
-          </p>
+          <p className="anonymous-note">All posts are anonymous 💬</p>
         </div>
 
         {renderMainContent()}
@@ -321,158 +329,19 @@ const PeerSupport = ({ initialSpace = 'Community Support' }) => {
       </main>
 
       <aside className="right-sidebar">
-        <h4>Related Community</h4>
+        <h4>Categories</h4>
         <ul>
-          {relatedCommunities.map(topic => (
+          {relatedCommunities.map(category => (
             <li
-              key={topic}
-              className={topic === activeSpace ? 'active' : ''}
-              onClick={() => setActiveSpace(topic)}
+              key={category}
+              className={category === activeSpace ? 'active' : ''}
+              onClick={() => setActiveSpace(category)}
             >
-              {topic}
+              {category}
             </li>
           ))}
         </ul>
       </aside>
-
-      {/* Username Prompt Modal */}
-      {showUsernamePrompt && (
-        <div className="username-modal">
-          <div className="username-modal-content">
-            <h4>Enter Your Username</h4>
-            <input
-              type="text"
-              placeholder="e.g. MindfulSoul"
-              value={tempUsername}
-              onChange={(e) => setTempUsername(e.target.value)}
-            />
-            <button onClick={handleSetUsername}>Save</button>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
-
-// --- POST CARD COMPONENT ---
-const PostCard = ({ post, space, posts, setPosts, isAdmin, username }) => {
-  const [comment, setComment] = useState('');
-  const [tempUsername, setTempUsername] = useState('');
-  const [showUsernamePrompt, setShowUsernamePrompt] = useState(false);
-  const [commenterUsername, setCommenterUsername] = useState('');
-
-  useEffect(() => {
-    const user = auth.currentUser;
-    if (user) {
-      const storedUsernames = JSON.parse(localStorage.getItem('peer_usernames') || '{}');
-      if (storedUsernames[user.uid]) {
-        setCommenterUsername(storedUsernames[user.uid]);
-      }
-    }
-  }, []);
-
-  const addComment = () => {
-    if (!comment.trim()) return;
-    if (!commenterUsername) {
-      setShowUsernamePrompt(true);
-      return;
-    }
-
-    const newComment = {
-      id: Date.now(),
-      text: comment,
-      emotion: 'neutral',
-      user: commenterUsername,
-    };
-
-    const updatedPosts = posts[space].map(p =>
-      p.id === post.id ? { ...p, comments: [...p.comments, newComment] } : p
-    );
-
-    setPosts({ ...posts, [space]: updatedPosts });
-    setComment('');
-  };
-
-  const handleSetUsername = () => {
-    const user = auth.currentUser;
-    if (!tempUsername.trim() || !user) return alert('Please enter a valid username.');
-    const storedUsernames = JSON.parse(localStorage.getItem('peer_usernames') || '{}');
-    storedUsernames[user.uid] = tempUsername;
-    localStorage.setItem('peer_usernames', JSON.stringify(storedUsernames));
-    setCommenterUsername(tempUsername);
-    setShowUsernamePrompt(false);
-  };
-
-  const deletePost = () => {
-    setPosts(prev => ({
-      ...prev,
-      [space]: prev[space].filter(p => p.id !== post.id),
-    }));
-  };
-
-  const deleteComment = (commentId) => {
-    const updatedPosts = posts[space].map(p =>
-      p.id === post.id ? { ...p, comments: p.comments.filter(c => c.id !== commentId) } : p
-    );
-    setPosts({ ...posts, [space]: updatedPosts });
-  };
-
-  return (
-    <div className="post-card">
-      <p className="post-text">
-        {isAdmin && post.userName && <span className="poster-name">{post.userName}: </span>}
-        {!isAdmin && <span className="poster-name">{post.userName}: </span>}
-        {post.text}
-        <span className="emotion-tag"> ({post.emotion})</span>
-        {isAdmin && (
-          <button className="delete-button" onClick={deletePost}>Delete</button>
-        )}
-      </p>
-
-      <div className="comment-area">
-        <input
-          type="text"
-          placeholder="Add a comment..."
-          value={comment}
-          onChange={(e) => setComment(e.target.value)}
-        />
-        <button onClick={addComment}>Comment</button>
-      </div>
-
-      {/* Username modal for comment */}
-      {showUsernamePrompt && (
-        <div className="username-modal">
-          <div className="username-modal-content">
-            <h4>Enter your username</h4>
-            <input
-              type="text"
-              placeholder="e.g. MindfulUser"
-              value={tempUsername}
-              onChange={(e) => setTempUsername(e.target.value)}
-            />
-            <button onClick={handleSetUsername}>Save</button>
-          </div>
-        </div>
-      )}
-
-      <div className="comments">
-        {post.comments?.map(c => (
-          <div key={c.id} className="comment">
-            <p className="comment-text">
-              💬 <strong>{c.user || 'Anonymous'}:</strong> {c.text}
-              {c.emotion && <span className="emotion-tag"> ({c.emotion})</span>}
-            </p>
-            {isAdmin && (
-              <button
-                className="delete-comment"
-                onClick={() => deleteComment(c.id)}
-              >
-                Delete
-              </button>
-            )}
-          </div>
-        ))}
-      </div>
     </div>
   );
 };
