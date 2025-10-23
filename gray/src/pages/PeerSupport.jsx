@@ -519,44 +519,46 @@ const PostCard = ({ post, space, posts, setPosts, isAdmin, username, comments = 
     }
   }, []);
 
-  const addComment = async () => {
-    if (!commentText.trim()) return;
-    if (!commenterUsername) {
-      setShowUsernamePrompt(true);
-      return;
+ const addComment = async () => {
+  if (!commentText.trim()) return;
+
+  let userNameToUse = commenterUsername || username; // fallback to parent username
+  if (!userNameToUse) {
+    setShowUsernamePrompt(true);
+    return;
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('comments')
+      .insert([
+        {
+          post_id: post.id,
+          text: commentText,
+          user_name: userNameToUse,
+          emotion: 'neutral',
+          created_at: new Date().toISOString(),
+        },
+      ])
+      .select();
+
+    if (error) throw error;
+
+    const inserted = data?.[0];
+    if (inserted) {
+      setCommentsByPost(prev => ({
+        ...prev,
+        [post.id]: [...(prev[post.id] || []), inserted],
+      }));
     }
 
-    try {
-      const { data, error } = await supabase
-        .from('comments')
-        .insert([
-          {
-            post_id: post.id,
-            text: commentText,
-            user_name: commenterUsername,
-            emotion: 'neutral',
-            created_at: new Date().toISOString(),
-          },
-        ])
-        .select();
+    setCommentText('');
+  } catch (err) {
+    console.error('Add comment error:', err);
+    alert('Failed to add comment.');
+  }
+};
 
-      if (error) throw error;
-
-      // optimistic update: realtime will also add, but do local update
-      const inserted = data?.[0];
-      if (inserted) {
-        setCommentsByPost(prev => ({
-          ...prev,
-          [post.id]: [...(prev[post.id] || []), inserted],
-        }));
-      }
-
-      setCommentText('');
-    } catch (err) {
-      console.error('Add comment error:', err);
-      alert('Failed to add comment.');
-    }
-  };
 
   const handleSetUsername = () => {
     const user = auth.currentUser;
