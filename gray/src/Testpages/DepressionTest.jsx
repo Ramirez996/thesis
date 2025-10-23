@@ -23,31 +23,39 @@ const optionValues = {
 };
 
 const getDepressionResult = (score) => {
+  // Add a simple boolean flag to the result object to indicate high risk based on score alone
+  let isHighRisk = score >= 20;
+
   if (score >= 20)
     return {
       result: "Severe Depression – Please seek professional help.",
       description:
         "Your score suggests severe depression. Consult a mental health professional.",
+      is_high_risk: isHighRisk,
     };
   if (score >= 15)
     return {
       result: "Moderately Severe Depression – Consider speaking with a professional.",
       description:
         "Your score suggests moderately severe depression. Professional guidance is recommended.",
+      is_high_risk: isHighRisk,
     };
   if (score >= 10)
     return {
       result: "Moderate Depression – Monitor and take care of yourself.",
       description: "Your score suggests moderate depression.",
+      is_high_risk: isHighRisk,
     };
   if (score >= 5)
     return {
       result: "Mild Depression – Be mindful of your mental well-being.",
       description: "Your score suggests mild depression.",
+      is_high_risk: isHighRisk,
     };
   return {
     result: "Minimal Depression – You're doing well.",
     description: "Your score indicates minimal depression symptoms.",
+    is_high_risk: isHighRisk,
   };
 };
 
@@ -72,7 +80,7 @@ const DepressionTest = () => {
       return;
     }
 
-    setIsLoading(true); // ✅ Start loading
+    setIsLoading(true);
 
     const features = questions.map((_, i) => optionValues[answers[i]]);
     const totalScore = features.reduce((sum, val) => sum + val, 0);
@@ -81,9 +89,8 @@ const DepressionTest = () => {
     const evaluation = getDepressionResult(totalScore);
     setResult(evaluation);
 
-    if (evaluation.result.startsWith("Severe")) {
-      setIsChatbotVisible(true);
-    }
+    // Initial check (before API) is now handled via the evaluation object, 
+    // but the final decision will be based on the hybrid risk model.
 
     try {
       const response = await fetch(getApiUrl("PHQ9_RISK"), {
@@ -91,17 +98,30 @@ const DepressionTest = () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           answers: features,
+          score: totalScore, // Add score to API body if needed by backend
+          result_text: evaluation.result, // Add result text to API body
           text: "User completed PHQ-9 test",
         }),
       });
       const data = await response.json();
       setHybridRisk(data);
+
+      // 1. Check the hybrid risk flag from the API response
+      if (data.is_high_risk) {
+          setIsChatbotVisible(true);
+      }
+      
     } catch (err) {
       console.error("Hybrid risk error:", err);
+      
+      // FALLBACK: If API fails, use the score-based risk evaluation
+      if (evaluation.is_high_risk) {
+          setIsChatbotVisible(true);
+      }
     }
 
     setShowResult(true);
-    setIsLoading(false); // ✅ Stop loading
+    setIsLoading(false);
   };
 
   return (
@@ -116,6 +136,7 @@ const DepressionTest = () => {
 
       {!showResult ? (
         <div className="question-section">
+          {/* ... (Question content here) ... */}
           <h1>Depression Test (PHQ-9)</h1>
 
           {questions.map((q, i) => (
@@ -149,6 +170,7 @@ const DepressionTest = () => {
           </button>
 
           <div className="test-source">
+            {/* ... (Source content here) ... */}
             <h2>Source:</h2>
             <p>
               Developed by Drs. Robert L. Spitzer, Janet B.W. Williams, Kurt
@@ -180,44 +202,45 @@ const DepressionTest = () => {
           <p>{result.description}</p>
 
           <div className="phq9-guidelines">
-  <h3>Guide for Interpreting PHQ-9 Scores</h3>
-  <table className="phq9-table">
-    <thead>
-      <tr>
-        <th>Score</th>
-        <th>Depression Severity</th>
-        <th>Action</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr>
-        <td>0 - 4</td>
-        <td>None-minimal</td>
-        <td>Patient may not need depression treatment.</td>
-      </tr>
-      <tr>
-        <td>5 - 9</td>
-        <td>Mild</td>
-        <td>Use clinical judgment about treatment, based on patient’s duration of symptoms and functional impairment.</td>
-      </tr>
-      <tr>
-        <td>10 - 14</td>
-        <td>Moderate</td>
-        <td>Use clinical judgment about treatment, based on patient’s duration of symptoms and functional impairment.</td>
-      </tr>
-      <tr>
-        <td>15 - 19</td>
-        <td>Moderately severe</td>
-        <td>Treat using antidepressants, psychotherapy, or a combination of treatments.</td>
-      </tr>
-      <tr>
-        <td>20 - 27</td>
-        <td>Severe</td>
-        <td>Treat using antidepressants with or without psychotherapy.</td>
-      </tr>
-    </tbody>
-  </table>
-</div>
+            {/* ... (PHQ-9 Guide table content here) ... */}
+            <h3>Guide for Interpreting PHQ-9 Scores</h3>
+            <table className="phq9-table">
+              <thead>
+                <tr>
+                  <th>Score</th>
+                  <th>Depression Severity</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>0 - 4</td>
+                  <td>None-minimal</td>
+                  <td>Patient may not need depression treatment.</td>
+                </tr>
+                <tr>
+                  <td>5 - 9</td>
+                  <td>Mild</td>
+                  <td>Use clinical judgment about treatment, based on patient’s duration of symptoms and functional impairment.</td>
+                </tr>
+                <tr>
+                  <td>10 - 14</td>
+                  <td>Moderate</td>
+                  <td>Use clinical judgment about treatment, based on patient’s duration of symptoms and functional impairment.</td>
+                </tr>
+                <tr>
+                  <td>15 - 19</td>
+                  <td>Moderately severe</td>
+                  <td>Treat using antidepressants, psychotherapy, or a combination of treatments.</td>
+                </tr>
+                <tr>
+                  <td>20 - 27</td>
+                  <td>Severe</td>
+                  <td>Treat using antidepressants with or without psychotherapy.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
 
           {hybridRisk && (
             <div style={{ marginTop: "2rem" }}>
@@ -252,30 +275,34 @@ const DepressionTest = () => {
               </li>
             ))}
           </ul>
-
-        {showResult && (
-          <button
-            onClick={toggleChatbot}
-            ref={chatbotButtonRef}
-            className="footer-button"
-            disabled={isLoading}
-          >
-            {isChatbotVisible ? "Hide Alarm bot" : "Open Alarm bot"}
-          </button>
-          )}
-        
-
-          {isChatbotVisible && (
-            <div className="chatbot-wrapper">
-              <Chatbot
-                combinedScore={score}
-                classification={result.result}
-                hybridRiskData={hybridRisk}
-              />
-            </div>
-            
-          )}
         </div>
+      )}
+      
+      {/* 2. CHATBOT AND BUTTON LOGIC - Placed outside the result-section div, but inside the component's main div */}
+      
+      {/* This condition checks the isChatbotVisible state and ensures result is available */}
+      {isChatbotVisible && result && (
+        <div className="chatbot-wrapper">
+          <Chatbot
+            combinedScore={score}
+            classification={result.result}
+            hybridRiskData={hybridRisk}
+            // 3. Pass the high-risk flag from the hybrid result to the Chatbot
+            severeAlert={hybridRisk?.is_high_risk} 
+          />
+        </div>
+      )}
+
+      {/* This condition ensures the button only shows after the result is available */}
+      {showResult && (
+        <button
+          onClick={toggleChatbot}
+          ref={chatbotButtonRef}
+          className="footer-button"
+          disabled={isLoading}
+        >
+          {isChatbotVisible ? "Hide Alarm bot" : "Open Alarm bot"}
+        </button>
       )}
     </div>
   );
