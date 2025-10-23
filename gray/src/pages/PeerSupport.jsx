@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { auth } from '../firebase/firebase';
 import { onAuthStateChanged, signInWithEmailAndPassword } from 'firebase/auth';
 import './PeerSupport.css';
+import { supabase } from '../supabaseClient'; // <-- Add this line
 
 const userSpaces = [
   'Community Support',
@@ -52,6 +53,57 @@ const PeerSupport = ({ initialSpace = 'Community Support' }) => {
     return () => unsubscribe();
   }, []);
 
+  // 1️⃣ Add this useEffect to load posts from Supabase
+  useEffect(() => {
+    const fetchPosts = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('posts')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        // Group posts by their space name
+        const grouped = {};
+        [...userSpaces, ...adminSpaces, ...relatedCommunities].forEach(space => {
+          grouped[space] = [];
+        });
+        data.forEach(post => {
+          if (grouped[post.space]) {
+            grouped[post.space].push(post);
+          }
+        });
+
+        setPosts(grouped);
+      } catch (error) {
+        console.error('Error loading posts:', error);
+      }
+    };
+
+    fetchPosts();
+  }, []); // This only runs once when the component mounts
+
+  useEffect(() => {
+  const channel = supabase
+    .channel('posts-changes')
+    .on(
+      'postgres_changes',
+      { event: 'INSERT', schema: 'public', table: 'posts' },
+      payload => {
+        setPosts(prev => ({
+          ...prev,
+          [payload.new.space]: [payload.new, ...(prev[payload.new.space] || [])],
+        }));
+      }
+    )
+    .subscribe();
+
+  return () => {
+    supabase.removeChannel(channel);
+  };
+}, []);
+
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
@@ -66,7 +118,7 @@ const PeerSupport = ({ initialSpace = 'Community Support' }) => {
 
   const spaces = isAdmin ? adminSpaces : userSpaces;
 
-const handlePost = async () => {
+  const handlePost = async () => {
     if (!postInput.trim()) return;
     const user = auth.currentUser;
     const userName = isAdmin && user ? user.email : 'Anonymous';
@@ -74,36 +126,46 @@ const handlePost = async () => {
     setIsPosting(true);
 
     try {
-        // ✅ Send the post text to your Flask backend
-        const response = await fetch('http://localhost:5000/analyze', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ text: postInput }),
-        });
+      // Step 1️⃣ — Send text to your Flask backend (Railway)
+      const response = await fetch('https://thesis-mental-health-production.up.railway.app/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: postInput }),
+      });
 
-        const analysis = await response.json();
-        const emotion = analysis.label || 'neutral';
+      const analysis = await response.json();
+      const emotion = analysis.label || 'neutral';
 
-        const savedPost = {
-            id: Date.now(),
+      // Step 2️⃣ — Save the post in Supabase
+      const { data, error } = await supabase
+        .from('posts')
+        .insert([
+          {
             text: postInput,
-            userName,
-            emotion,
-            comments: []
-        };
+            user_name: userName,
+            emotion: emotion,
+            space: activeSpace,
+            created_at: new Date(),
+          },
+        ])
+        .select();
 
-        setPosts(prev => ({
-            ...prev,
-            [activeSpace]: [savedPost, ...prev[activeSpace]],
-        }));
-        setPostInput('');
+      if (error) throw error;
+
+      // Step 3️⃣ — Add to local state (so it appears instantly)
+      setPosts(prev => ({
+        ...prev,
+        [activeSpace]: [data[0], ...prev[activeSpace]],
+      }));
+
+      setPostInput('');
     } catch (error) {
-        console.error('Failed to handle post:', error);
-        alert('Error posting or analyzing text.');
+      console.error('Failed to post:', error);
+      alert('Failed to post — please try again.');
     } finally {
-        setIsPosting(false);
+      setIsPosting(false);
     }
-};
+  };
 
   const handleCSVUpload = async () => {
     if (!csvFile) {
@@ -178,37 +240,6 @@ const handlePost = async () => {
             This platform was developed as part of the thesis project: <br />
             <strong>"Mental Health Assessment Using Logistic Regression and BERT-based NLP for Early Detection of Psychological Distress"</strong>.
           </p>
-
-          <ul className="developer-team">
-            <li>👨‍💻 <strong>Marc Rainier B. Buitizon</strong> – Lead Programmer</li>
-            <li>📋 <strong>Jeffrey B. Ramirez</strong> – Project Leader</li>
-            <li>🛠 <strong>Gabriela C. Enriquez</strong> – System Manager</li>
-            <li>🎨 <strong>Jensha P. Maniflor</strong> – Designer</li>
-          </ul>
-
-          <p>
-            Our goal is to integrate a BERT NLP model for sentiment analysis with peer support, combining its results with a Logistic Regression Algorithm to encourage early detection 
-            of psychological distress while providing a safe and anonymous platform for sharing thoughts.
-          </p>
-          <p className="note">
-            💡 Disclaimer: This platform does not replace professional diagnosis or treatment. 
-            If you’re in crisis, please seek immediate help from a licensed professional or 
-            mental health hotline.
-          </p>
-        </div>
-      );
-    }
-
-    if (activeSpace === 'About System') {
-      return (
-        <div className="about-system">
-          <h3>🖥️ About the System</h3>
-          <p>
-            This system is designed to help people understand and self-evaluate their mental well-being using Artificial Intelligence. 
-            It includes tests for anxiety, depression, well-being, and personality. 
-            Results are analyzed via a logistic regression model to classify risk levels. 
-            An AI chatbot supports guided reflection, and peer support enables safe, anonymous sharing.
-          </p>
         </div>
       );
     }
@@ -274,7 +305,6 @@ const handlePost = async () => {
         )}
       </main>
 
-      {/* ✅ Categories Sidebar */}
       <aside className="right-sidebar">
         <h4>Categories</h4>
         <ul>
@@ -289,79 +319,6 @@ const handlePost = async () => {
           ))}
         </ul>
       </aside>
-    </div>
-  );
-};
-
-const PostCard = ({ post, space, posts, setPosts, isAdmin }) => {
-  const [comment, setComment] = useState('');
-
-  const addComment = () => {
-    if (!comment.trim()) return;
-
-    const newComment = {
-      id: Date.now(),
-      text: comment,
-      emotion: 'neutral',
-    };
-
-    const updatedPosts = posts[space].map(p =>
-      p.id === post.id ? { ...p, comments: [...p.comments, newComment] } : p
-    );
-
-    setPosts({ ...posts, [space]: updatedPosts });
-    setComment('');
-  };
-
-  const deletePost = () => {
-    setPosts(prev => ({
-      ...prev,
-      [space]: prev[space].filter(p => p.id !== post.id),
-    }));
-  };
-
-  const deleteComment = (commentId) => {
-    const updatedPosts = posts[space].map(p =>
-      p.id === post.id ? { ...p, comments: p.comments.filter(c => c.id !== commentId) } : p
-    );
-    setPosts({ ...posts, [space]: updatedPosts });
-  };
-
-  return (
-    <div className="post-card">
-      <p className="post-text">
-        {isAdmin && post.userName && <span className="poster-name">{post.userName}:</span>}
-        {!isAdmin && 'Anonymous:'} {post.text}
-        <span className={`emotion-tag ${post.emotion.toLowerCase()}`}>({post.emotion})</span>
-        <button className='delete-button' onClick={deletePost}>Delete</button>
-      </p>
-      <div className="comment-area">
-        <input
-          type="text"
-          placeholder="Add a comment..."
-          value={comment}
-          onChange={(e) => setComment(e.target.value)}
-        />
-        <button onClick={addComment}>Comment</button>
-      </div>
-      <div className="comments">
-        {post.comments?.map(c => (
-          <div key={c.id} className="comment">
-            <p className="comment-text">
-              💬 {c.text}
-              {c.emotion && <span className="emotion-tag"> ({c.emotion})</span>}
-            </p>
-            {isAdmin && (
-              <button
-                className="delete-comment"
-                onClick={() => deleteComment(c.id)}
-              >
-                Delete
-              </button>
-            )}
-          </div>
-        ))}
-      </div>
     </div>
   );
 };
