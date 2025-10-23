@@ -4,6 +4,25 @@ import { onAuthStateChanged, signInWithEmailAndPassword } from 'firebase/auth';
 import './PeerSupport.css';
 import { supabase } from '../supabaseClient'; // <-- Add this line
 
+const PostCard = ({ post, space, posts, setPosts, isAdmin }) => {
+    // Basic placeholder for the card structure. You can expand this later.
+    return (
+        <div className={`post-card ${post.emotion}`}>
+            <div className="post-header">
+                <span className="post-user">{post.user_name}</span>
+                <span className="post-time">
+                    {new Date(post.created_at).toLocaleString()}
+                </span>
+            </div>
+            <p className="post-text">{post.text}</p>
+            <div className="post-footer">
+                <span className="post-emotion">Emotion: {post.emotion}</span>
+                {/* Add comment counts or admin actions here */}
+            </div>
+        </div>
+    );
+};
+
 const userSpaces = [
   'Community Support',
   'Suggested Actions',
