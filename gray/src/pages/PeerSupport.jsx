@@ -2,10 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { auth } from '../firebase/firebase';
 import { onAuthStateChanged, signInWithEmailAndPassword } from 'firebase/auth';
 import './PeerSupport.css';
-import { supabase } from '../supabaseClient'; // <-- Add this line
+import { supabase } from '../supabaseClient'; 
 
+// =========================================================================
+// ✅ FIX: PostCard component defined locally to prevent white screen crash
+// =========================================================================
 const PostCard = ({ post, space, posts, setPosts, isAdmin }) => {
-    // Basic placeholder for the card structure. You can expand this later.
     return (
         <div className={`post-card ${post.emotion}`}>
             <div className="post-header">
@@ -17,11 +19,12 @@ const PostCard = ({ post, space, posts, setPosts, isAdmin }) => {
             <p className="post-text">{post.text}</p>
             <div className="post-footer">
                 <span className="post-emotion">Emotion: {post.emotion}</span>
-                {/* Add comment counts or admin actions here */}
+                {/* You can add comment/delete logic here */}
             </div>
         </div>
     );
 };
+// =========================================================================
 
 const userSpaces = [
   'Community Support',
@@ -37,7 +40,7 @@ const adminSpaces = [
   'Admin Actions',
 ];
 
-// ✅ Categories (replaces Related Communities)
+// ✅ Categories 
 const relatedCommunities = [
   'Depression',
   'Anxiety',
@@ -72,7 +75,7 @@ const PeerSupport = ({ initialSpace = 'Community Support' }) => {
     return () => unsubscribe();
   }, []);
 
-  // 1️⃣ Add this useEffect to load posts from Supabase
+  // 1️⃣ Fetch posts from Supabase on mount
   useEffect(() => {
     const fetchPosts = async () => {
       try {
@@ -101,27 +104,28 @@ const PeerSupport = ({ initialSpace = 'Community Support' }) => {
     };
 
     fetchPosts();
-  }, []); // This only runs once when the component mounts
+  }, []); 
 
+  // 2️⃣ Realtime subscription for new posts
   useEffect(() => {
-  const channel = supabase
-    .channel('posts-changes')
-    .on(
-      'postgres_changes',
-      { event: 'INSERT', schema: 'public', table: 'posts' },
-      payload => {
-        setPosts(prev => ({
-          ...prev,
-          [payload.new.space]: [payload.new, ...(prev[payload.new.space] || [])],
-        }));
-      }
-    )
-    .subscribe();
+    const channel = supabase
+      .channel('posts-changes')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'posts' },
+        payload => {
+          setPosts(prev => ({
+            ...prev,
+            [payload.new.space]: [payload.new, ...(prev[payload.new.space] || [])],
+          }));
+        }
+      )
+      .subscribe();
 
-  return () => {
-    supabase.removeChannel(channel);
-  };
-}, []);
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -145,7 +149,7 @@ const PeerSupport = ({ initialSpace = 'Community Support' }) => {
     setIsPosting(true);
 
     try {
-      // Step 1️⃣ — Send text to your Flask backend (Railway)
+      // Step 1️⃣ — Send text to Flask backend (Railway)
       const response = await fetch('https://thesis-mental-health-production.up.railway.app/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -155,7 +159,7 @@ const PeerSupport = ({ initialSpace = 'Community Support' }) => {
       const analysis = await response.json();
       const emotion = analysis.label || 'neutral';
 
-      // Step 2️⃣ — Save the post in Supabase
+      // Step 2️⃣ — Save the post in Supabase (This should now work for 'Depression')
       const { data, error } = await supabase
         .from('posts')
         .insert([
@@ -171,7 +175,7 @@ const PeerSupport = ({ initialSpace = 'Community Support' }) => {
 
       if (error) throw error;
 
-      // Step 3️⃣ — Add to local state (so it appears instantly)
+      // Step 3️⃣ — Add to local state
       setPosts(prev => ({
         ...prev,
         [activeSpace]: [data[0], ...prev[activeSpace]],
