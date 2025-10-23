@@ -1,7 +1,12 @@
+-- ✅ Enable UUIDs (if you ever need Supabase client-generated IDs)
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
+----------------------------------------------------------
+-- 🧩 POSTS TABLE
+----------------------------------------------------------
 CREATE TABLE IF NOT EXISTS posts (
     id SERIAL PRIMARY KEY,
+    user_name VARCHAR(100) DEFAULT 'Anonymous',
     space VARCHAR(50) CHECK (space IN (
         'Community Support',
         'Suggested Actions', 
@@ -17,16 +22,21 @@ CREATE TABLE IF NOT EXISTS posts (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+----------------------------------------------------------
+-- 💬 COMMENTS TABLE
+----------------------------------------------------------
 CREATE TABLE IF NOT EXISTS comments (
     id SERIAL PRIMARY KEY,
-    post_id INTEGER NOT NULL,
+    post_id INTEGER NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+    user_name VARCHAR(100) DEFAULT 'Anonymous',
     text TEXT NOT NULL,
     emotion VARCHAR(50) DEFAULT 'neutral',
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Anxiety Test (GAD-7)
+----------------------------------------------------------
+-- 😰 ANXIETY TEST (GAD-7)
+----------------------------------------------------------
 CREATE TABLE IF NOT EXISTS anxiety_results (
     id SERIAL PRIMARY KEY,
     user_name VARCHAR(100),
@@ -41,7 +51,9 @@ CREATE TABLE IF NOT EXISTS anxiety_results (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Depression Test (PHQ-9)
+----------------------------------------------------------
+-- 😔 DEPRESSION TEST (PHQ-9)
+----------------------------------------------------------
 CREATE TABLE IF NOT EXISTS depression_results (
     id SERIAL PRIMARY KEY,
     user_name VARCHAR(100),
@@ -57,7 +69,9 @@ CREATE TABLE IF NOT EXISTS depression_results (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Personality Test (BFI-10)
+----------------------------------------------------------
+-- 🧠 PERSONALITY TEST (BFI-10)
+----------------------------------------------------------
 CREATE TABLE IF NOT EXISTS personality_results (
     id SERIAL PRIMARY KEY,
     user_name VARCHAR(100),
@@ -75,11 +89,14 @@ CREATE TABLE IF NOT EXISTS personality_results (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Well-being Test (WHO-5)
+----------------------------------------------------------
+-- 😊 WELL-BEING TEST (WHO-5)
+----------------------------------------------------------
 CREATE TABLE IF NOT EXISTS wellbeing_results (
     id SERIAL PRIMARY KEY,
     user_name VARCHAR(100),
     score INTEGER NOT NULL,
+    percentage INTEGER GENERATED ALWAYS AS (score * 4) STORED,
     result_text VARCHAR(255) NOT NULL,
     description TEXT,
     lr_score DECIMAL(5,4),
@@ -91,10 +108,13 @@ CREATE TABLE IF NOT EXISTS wellbeing_results (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Create indexes for better performance
+----------------------------------------------------------
+-- ⚡ INDEXES FOR PERFORMANCE
+----------------------------------------------------------
 CREATE INDEX IF NOT EXISTS idx_posts_space ON posts(space);
 CREATE INDEX IF NOT EXISTS idx_posts_created_at ON posts(created_at);
 CREATE INDEX IF NOT EXISTS idx_comments_post_id ON comments(post_id);
+CREATE INDEX IF NOT EXISTS idx_comments_user_name ON comments(user_name);
 CREATE INDEX IF NOT EXISTS idx_anxiety_results_user_name ON anxiety_results(user_name);
 CREATE INDEX IF NOT EXISTS idx_anxiety_results_created_at ON anxiety_results(created_at);
 CREATE INDEX IF NOT EXISTS idx_depression_results_user_name ON depression_results(user_name);
@@ -104,13 +124,21 @@ CREATE INDEX IF NOT EXISTS idx_personality_results_created_at ON personality_res
 CREATE INDEX IF NOT EXISTS idx_wellbeing_results_user_name ON wellbeing_results(user_name);
 CREATE INDEX IF NOT EXISTS idx_wellbeing_results_created_at ON wellbeing_results(created_at);
 
--- Insert sample data for testing (optional)
-INSERT INTO posts (space, text, emotion) VALUES 
-('Community Support', 'Welcome to our mental health support community!', 'positive'),
-('About System', 'This system provides comprehensive mental health assessments.', 'neutral')
+----------------------------------------------------------
+-- 🧾 SAMPLE DATA (optional, safe to remove later)
+----------------------------------------------------------
+INSERT INTO posts (user_name, space, text, emotion) VALUES 
+('Admin', 'Community Support', 'Welcome to our mental health support community!', 'positive'),
+('System', 'About System', 'This system provides comprehensive mental health assessments.', 'neutral')
 ON CONFLICT DO NOTHING;
 
--- Verification queries (run these after creation)
+----------------------------------------------------------
+-- ✅ VERIFICATION QUERIES
+----------------------------------------------------------
+-- List all tables
 -- SELECT table_name FROM information_schema.tables WHERE table_schema = 'public';
+-- Count rows
 -- SELECT COUNT(*) FROM posts;
+-- SELECT COUNT(*) FROM comments;
 -- SELECT COUNT(*) FROM anxiety_results;
+-- SELECT COUNT(*) FROM wellbeing_results;
