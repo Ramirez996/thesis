@@ -628,6 +628,7 @@ const PostCard = ({ post, space, posts, setPosts, isAdmin, username, comments = 
       </div>
 
       <p className="post-text">
+        <span className="post-user">{post.user_name || 'Anonymous'}</span>
         {post.text}
         <span className="emotion-tag"> ({post.emotion})</span>
       </p>
