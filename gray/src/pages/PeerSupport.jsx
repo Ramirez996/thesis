@@ -1,4 +1,3 @@
-// PeerSupport.jsx
 import React, { useState, useEffect } from 'react';
 import { auth } from '../firebase/firebase';
 import { onAuthStateChanged, signInWithEmailAndPassword } from 'firebase/auth';
@@ -38,39 +37,30 @@ const PeerSupport = ({ initialSpace = 'Community Support' }) => {
     });
     return initial;
   });
-
-  // We'll keep comments in a separate map: { post_id: [comments...] }
   const [commentsByPost, setCommentsByPost] = useState({});
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const [isPosting, setIsPosting] = useState(false);
   const [email, setEmail] = useState('');
   const [csvFile, setCsvFile] = useState(null);
-
-  // Username & auth
   const [username, setUsername] = useState('');
   const [showUsernamePrompt, setShowUsernamePrompt] = useState(false);
   const [tempUsername, setTempUsername] = useState('');
   const [currentUser, setCurrentUser] = useState(null);
 
-  // Backend endpoints
   const ANALYZE_URL = 'https://thesis-mental-health-production.up.railway.app/analyze';
   const CSV_UPLOAD_URL = 'https://thesis-mental-health-production.up.railway.app/upload_csv';
 
-  // -------------------- Auth + username handling --------------------
+  // -------------------- Auth + Username --------------------
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, user => {
       if (user) {
         setCurrentUser(user);
         setIsAdmin(user.email === 'admin@gmail.com');
-        // load stored username for this uid
         const storedUsernames = JSON.parse(localStorage.getItem('peer_usernames') || '{}');
         const userSpecificName = storedUsernames[user.uid];
-        if (userSpecificName) {
-          setUsername(userSpecificName);
-        } else {
-          setShowUsernamePrompt(true);
-        }
+        if (userSpecificName) setUsername(userSpecificName);
+        else setShowUsernamePrompt(true);
       } else {
         setCurrentUser(null);
       }
@@ -106,19 +96,16 @@ const PeerSupport = ({ initialSpace = 'Community Support' }) => {
     }
   };
 
-  // -------------------- Fetch posts & comments --------------------
+  // -------------------- Fetch Posts & Comments --------------------
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Fetch posts
         const { data: postsData, error: postsError } = await supabase
           .from('posts')
           .select('*')
           .order('created_at', { ascending: false });
-
         if (postsError) throw postsError;
 
-        // Group posts by space
         const grouped = {};
         [...userSpaces, ...adminSpaces, ...relatedCommunities].forEach(space => {
           grouped[space] = [];
@@ -126,19 +113,16 @@ const PeerSupport = ({ initialSpace = 'Community Support' }) => {
         postsData.forEach(p => {
           if (grouped[p.space]) grouped[p.space].push(p);
         });
-
         setPosts(grouped);
 
-        // Fetch comments
         const { data: commentsData, error: commentsError } = await supabase
           .from('comments')
           .select('*')
           .order('created_at', { ascending: true });
-
         if (commentsError) throw commentsError;
 
         const commentsMap = {};
-        (commentsData || []).forEach(c => {
+        commentsData.forEach(c => {
           if (!commentsMap[c.post_id]) commentsMap[c.post_id] = [];
           commentsMap[c.post_id].push(c);
         });
@@ -147,72 +131,52 @@ const PeerSupport = ({ initialSpace = 'Community Support' }) => {
         console.error('Error loading posts/comments:', err);
       }
     };
-
     fetchData();
   }, []);
 
-  // -------------------- Realtime subscriptions --------------------
+  // -------------------- Realtime Updates --------------------
   useEffect(() => {
-    // Posts realtime
     const postsChannel = supabase
       .channel('posts-changes')
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'posts' },
-        payload => {
-          const newPost = payload.new;
-          setPosts(prev => ({
-            ...prev,
-            [newPost.space]: [newPost, ...(prev[newPost.space] || [])],
-          }));
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: 'DELETE', schema: 'public', table: 'posts' },
-        payload => {
-          const deleted = payload.old;
-          setPosts(prev => ({
-            ...prev,
-            [deleted.space]: prev[deleted.space].filter(p => p.id !== deleted.id),
-          }));
-          // also remove comments map entry
-          setCommentsByPost(prev => {
-            const copy = { ...prev };
-            delete copy[deleted.id];
-            return copy;
-          });
-        }
-      )
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'posts' }, payload => {
+        const newPost = payload.new;
+        setPosts(prev => ({
+          ...prev,
+          [newPost.space]: [newPost, ...(prev[newPost.space] || [])],
+        }));
+      })
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'posts' }, payload => {
+        const deleted = payload.old;
+        setPosts(prev => ({
+          ...prev,
+          [deleted.space]: prev[deleted.space].filter(p => p.id !== deleted.id),
+        }));
+        setCommentsByPost(prev => {
+          const copy = { ...prev };
+          delete copy[deleted.id];
+          return copy;
+        });
+      })
       .subscribe();
 
-    // Comments realtime
     const commentsChannel = supabase
       .channel('comments-changes')
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'comments' },
-        payload => {
-          const newComment = payload.new;
-          setCommentsByPost(prev => {
-            const copy = { ...prev };
-            copy[newComment.post_id] = [...(copy[newComment.post_id] || []), newComment];
-            return copy;
-          });
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: 'DELETE', schema: 'public', table: 'comments' },
-        payload => {
-          const old = payload.old;
-          setCommentsByPost(prev => {
-            const copy = { ...prev };
-            copy[old.post_id] = (copy[old.post_id] || []).filter(c => c.id !== old.id);
-            return copy;
-          });
-        }
-      )
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'comments' }, payload => {
+        const newComment = payload.new;
+        setCommentsByPost(prev => {
+          const copy = { ...prev };
+          copy[newComment.post_id] = [...(copy[newComment.post_id] || []), newComment];
+          return copy;
+        });
+      })
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'comments' }, payload => {
+        const old = payload.old;
+        setCommentsByPost(prev => {
+          const copy = { ...prev };
+          copy[old.post_id] = (copy[old.post_id] || []).filter(c => c.id !== old.id);
+          return copy;
+        });
+      })
       .subscribe();
 
     return () => {
@@ -234,7 +198,6 @@ const PeerSupport = ({ initialSpace = 'Community Support' }) => {
 
     setIsPosting(true);
     try {
-      // Send to Flask emotion analyzer
       const resp = await fetch(ANALYZE_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -243,7 +206,6 @@ const PeerSupport = ({ initialSpace = 'Community Support' }) => {
       const analysis = resp.ok ? await resp.json() : { label: 'neutral' };
       const emotion = analysis.label || 'neutral';
 
-      // Insert into Supabase posts table
       const { data, error } = await supabase
         .from('posts')
         .insert([
@@ -258,8 +220,6 @@ const PeerSupport = ({ initialSpace = 'Community Support' }) => {
         .select();
 
       if (error) throw error;
-
-      // local state update (the realtime feed will also update, but local optimistic update is fine)
       const inserted = data?.[0];
       if (inserted) {
         setPosts(prev => ({
@@ -277,12 +237,9 @@ const PeerSupport = ({ initialSpace = 'Community Support' }) => {
     }
   };
 
-  // -------------------- CSV Upload (admin) --------------------
+  // -------------------- CSV Upload --------------------
   const handleCSVUpload = async () => {
-    if (!csvFile) {
-      alert('Please select a CSV file.');
-      return;
-    }
+    if (!csvFile) return alert('Please select a CSV file.');
     try {
       const formData = new FormData();
       formData.append('file', csvFile);
@@ -296,19 +253,9 @@ const PeerSupport = ({ initialSpace = 'Community Support' }) => {
   };
 
   if (loading) return <div>Loading...</div>;
-
   const spaces = isAdmin ? adminSpaces : userSpaces;
 
-  if (isPosting) {
-    return (
-      <div className="loading-overlay">
-        <div className="loading-spinner"></div>
-        <p>Posting your thoughts... 💭</p>
-      </div>
-    );
-  }
-
-  // -------------------- Render helpers --------------------
+  // -------------------- Render --------------------
   const renderCommunityPage = (community) => (
     <div className="community-page">
       <h3>{community} Community 💬</h3>
@@ -340,69 +287,10 @@ const PeerSupport = ({ initialSpace = 'Community Support' }) => {
   );
 
   const renderMainContent = () => {
-    if (relatedCommunities.includes(activeSpace)) {
-      return renderCommunityPage(activeSpace);
-    }
-
-    if (activeSpace === 'Suggested Actions') {
-      return (
-        <div className="resource-links">
-          <h3>Suggested Actions</h3>
-          <ul>
-            <li>🏥 <a href="https://www.who.int/philippines/news/detail/12-10-2023-doh--who-launch-philippine-council-for-mental-health-strategic-framework-2024-2028" target="_blank" rel="noreferrer">DOH Mental Health Resources</a></li>
-            <li>📍 <a href="https://www.ncmh.gov.ph/" target="_blank" rel="noreferrer">National Center for Mental Health</a> – Hotline: 1553</li>
-            <li>📞 <a href="https://www.facebook.com/ncmhcrisishotline/" target="_blank" rel="noreferrer">NCMH Crisis Hotline (Facebook)</a></li>
-            <li>🧠 <a href="https://mentalhealthph.org/" target="_blank" rel="noreferrer">MentalHealthPH.org</a></li>
-            <li>🔍 <a href="https://nowserving.ph/psychology/" target="_blank" rel="noreferrer">Find a Psychologist</a></li>
-          </ul>
-          <p className="note">These resources are verified and can guide you to professional support. 💙</p>
-        </div>
-      );
-    }
-
-    if (activeSpace === 'About Developers') {
-      return (
-        <div className="about-developer">
-          <h3>👨‍💻 About the Developers</h3>
-          <p>
-            This platform was developed as part of the thesis project: <br />
-            <strong>"Mental Health Assessment Using Logistic Regression and BERT-based NLP for Early Detection of Psychological Distress"</strong>.
-          </p>
-
-          <ul className="developer-team">
-            <li>👨‍💻 <strong>Marc Rainier B. Buitizon</strong> – Lead Programmer</li>
-            <li>📋 <strong>Jeffrey B. Ramirez</strong> – Project Leader</li>
-            <li>🛠 <strong>Gabriela C. Enriquez</strong> – System Manager</li>
-            <li>🎨 <strong>Jensha P. Maniflor</strong> – Designer</li>
-          </ul>
-
-          <p>
-            Our goal is to integrate a BERT NLP model for sentiment analysis with peer support and to combine its result with a Logistic Regression Algorithm to encourage early detection 
-            of psychological distress while providing a safe and anonymous platform for sharing thoughts.
-          </p>
-          <p className="note">
-            💡 Disclaimer: This platform does not replace professional diagnosis or treatment. 
-            If you’re in crisis, please seek immediate help from a licensed professional or 
-            mental health hotline.
-          </p>
-        </div>
-      );
-    }
-
-    if (activeSpace === 'About System') {
-      return (
-        <div className="about-system">
-          <h3>🖥️ About the System</h3>
-          <p>
-            This system is designed to help people understand and self-evaluate their mental well-being using Artificial Intelligence. 
-            There are tests for anxiety, depression, general well-being, and personality traits. 
-            The scoring is analyzed via a logistic regression model to classify results by risk level. 
-            An AI chatbot supports guided reflection, and peer support allows safe, anonymous sharing and encouragement.
-          </p>
-        </div>
-      );
-    }
-
+    if (relatedCommunities.includes(activeSpace)) return renderCommunityPage(activeSpace);
+    if (activeSpace === 'Suggested Actions') return <SuggestedActions />;
+    if (activeSpace === 'About Developers') return <AboutDevelopers />;
+    if (activeSpace === 'About System') return <AboutSystem />;
     return (
       <>
         <div className="posts-list">
@@ -439,11 +327,7 @@ const PeerSupport = ({ initialSpace = 'Community Support' }) => {
         <h3>Spaces</h3>
         <ul>
           {spaces.map(space => (
-            <li
-              key={space}
-              className={space === activeSpace ? 'active' : ''}
-              onClick={() => setActiveSpace(space)}
-            >
+            <li key={space} className={space === activeSpace ? 'active' : ''} onClick={() => setActiveSpace(space)}>
               {space}
             </li>
           ))}
@@ -453,11 +337,8 @@ const PeerSupport = ({ initialSpace = 'Community Support' }) => {
       <main className="main-content">
         <div className="space-header">
           <h2>{activeSpace}</h2>
-          <p className="anonymous-note">
-            Posting as: <strong>{isAdmin ? 'Admin' : username || 'Set Username'}</strong>
-          </p>
+          <p className="anonymous-note">Posting as: <strong>{isAdmin ? 'Admin' : username || 'Set Username'}</strong></p>
         </div>
-
         {renderMainContent()}
 
         {isAdmin && (
@@ -473,28 +354,18 @@ const PeerSupport = ({ initialSpace = 'Community Support' }) => {
         <h4>Related Community</h4>
         <ul>
           {relatedCommunities.map(topic => (
-            <li
-              key={topic}
-              className={topic === activeSpace ? 'active' : ''}
-              onClick={() => setActiveSpace(topic)}
-            >
+            <li key={topic} className={topic === activeSpace ? 'active' : ''} onClick={() => setActiveSpace(topic)}>
               {topic}
             </li>
           ))}
         </ul>
       </aside>
 
-      {/* Username Prompt Modal */}
       {showUsernamePrompt && (
         <div className="username-modal">
           <div className="username-modal-content">
             <h4>Enter Your Username</h4>
-            <input
-              type="text"
-              placeholder="e.g. MindfulSoul"
-              value={tempUsername}
-              onChange={(e) => setTempUsername(e.target.value)}
-            />
+            <input type="text" placeholder="e.g. MindfulSoul" value={tempUsername} onChange={(e) => setTempUsername(e.target.value)} />
             <button onClick={handleSetUsername}>Save</button>
           </div>
         </div>
@@ -503,8 +374,8 @@ const PeerSupport = ({ initialSpace = 'Community Support' }) => {
   );
 };
 
-// -------------------- PostCard Component --------------------
-const PostCard = ({ post, space, posts, setPosts, isAdmin, username, comments = [], setCommentsByPost }) => {
+// -------------------- PostCard --------------------
+const PostCard = ({ post, space, setPosts, isAdmin, comments = [], setCommentsByPost }) => {
   const [commentText, setCommentText] = useState('');
   const [showUsernamePrompt, setShowUsernamePrompt] = useState(false);
   const [tempUsername, setTempUsername] = useState('');
@@ -525,24 +396,12 @@ const PostCard = ({ post, space, posts, setPosts, isAdmin, username, comments = 
       setShowUsernamePrompt(true);
       return;
     }
-
     try {
       const { data, error } = await supabase
         .from('comments')
-        .insert([
-          {
-            post_id: post.id,
-            text: commentText,
-            user_name: commenterUsername,
-            emotion: 'neutral',
-            created_at: new Date().toISOString(),
-          },
-        ])
+        .insert([{ post_id: post.id, text: commentText, user_name: commenterUsername, emotion: 'neutral', created_at: new Date().toISOString() }])
         .select();
-
       if (error) throw error;
-
-      // optimistic update: realtime will also add, but do local update
       const inserted = data?.[0];
       if (inserted) {
         setCommentsByPost(prev => ({
@@ -550,7 +409,6 @@ const PostCard = ({ post, space, posts, setPosts, isAdmin, username, comments = 
           [post.id]: [...(prev[post.id] || []), inserted],
         }));
       }
-
       setCommentText('');
     } catch (err) {
       console.error('Add comment error:', err);
@@ -573,25 +431,13 @@ const PostCard = ({ post, space, posts, setPosts, isAdmin, username, comments = 
     if (!window.confirm('Delete this post?')) return;
     setIsDeleting(true);
     try {
-      const { error } = await supabase
-        .from('posts')
-        .delete()
-        .eq('id', post.id);
-
+      const { error } = await supabase.from('posts').delete().eq('id', post.id);
       if (error) throw error;
-
       setPosts(prev => ({
         ...prev,
         [space]: prev[space].filter(p => p.id !== post.id),
       }));
-
-      // optionally delete comments for the post in DB
-      const { error: err2 } = await supabase
-        .from('comments')
-        .delete()
-        .eq('post_id', post.id);
-
-      if (err2) console.warn('Error deleting comments for post:', err2);
+      await supabase.from('comments').delete().eq('post_id', post.id);
     } catch (err) {
       console.error('Delete post error:', err);
       alert('Failed to delete post.');
@@ -603,13 +449,8 @@ const PostCard = ({ post, space, posts, setPosts, isAdmin, username, comments = 
   const deleteComment = async (commentId) => {
     if (!window.confirm('Delete this comment?')) return;
     try {
-      const { error } = await supabase
-        .from('comments')
-        .delete()
-        .eq('id', commentId);
-
+      const { error } = await supabase.from('comments').delete().eq('id', commentId);
       if (error) throw error;
-
       setCommentsByPost(prev => ({
         ...prev,
         [post.id]: (prev[post.id] || []).filter(c => c.id !== commentId),
@@ -632,35 +473,22 @@ const PostCard = ({ post, space, posts, setPosts, isAdmin, username, comments = 
         <span className="emotion-tag"> ({post.emotion})</span>
       </p>
 
-      <div className="post-actions">
-        {isAdmin && (
-          <button className="delete-button" onClick={deletePost} disabled={isDeleting}>
-            {isDeleting ? 'Deleting...' : 'Delete'}
-          </button>
-        )}
-      </div>
+      {isAdmin && (
+        <button className="delete-button" onClick={deletePost} disabled={isDeleting}>
+          {isDeleting ? 'Deleting...' : 'Delete'}
+        </button>
+      )}
 
       <div className="comment-area">
-        <input
-          type="text"
-          placeholder="Add a comment..."
-          value={commentText}
-          onChange={(e) => setCommentText(e.target.value)}
-        />
+        <input type="text" placeholder="Add a comment..." value={commentText} onChange={(e) => setCommentText(e.target.value)} />
         <button onClick={addComment}>Comment</button>
       </div>
 
-      {/* Username modal (for comments) */}
       {showUsernamePrompt && (
         <div className="username-modal">
           <div className="username-modal-content">
             <h4>Enter your username</h4>
-            <input
-              type="text"
-              placeholder="e.g. MindfulUser"
-              value={tempUsername}
-              onChange={(e) => setTempUsername(e.target.value)}
-            />
+            <input type="text" placeholder="e.g. MindfulUser" value={tempUsername} onChange={(e) => setTempUsername(e.target.value)} />
             <button onClick={handleSetUsername}>Save</button>
           </div>
         </div>
@@ -671,11 +499,8 @@ const PostCard = ({ post, space, posts, setPosts, isAdmin, username, comments = 
           <div key={c.id} className="comment">
             <p className="comment-text">
               💬 <strong>{c.user_name || 'Anonymous'}:</strong> {c.text}
-              {c.emotion && <span className="emotion-tag"> ({c.emotion})</span>}
             </p>
-            {isAdmin && (
-              <button className="delete-comment" onClick={() => deleteComment(c.id)}>Delete</button>
-            )}
+            {isAdmin && <button className="delete-comment" onClick={() => deleteComment(c.id)}>Delete</button>}
           </div>
         ))}
       </div>
