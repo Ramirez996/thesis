@@ -176,6 +176,7 @@ const PeerSupport = ({ initialSpace = 'Community Support' }) => {
             ...prev,
             [deleted.space]: prev[deleted.space].filter(p => p.id !== deleted.id),
           }));
+          // also remove comments map entry
           setCommentsByPost(prev => {
             const copy = { ...prev };
             delete copy[deleted.id];
@@ -258,6 +259,7 @@ const PeerSupport = ({ initialSpace = 'Community Support' }) => {
 
       if (error) throw error;
 
+      // local state update (the realtime feed will also update, but local optimistic update is fine)
       const inserted = data?.[0];
       if (inserted) {
         setPosts(prev => ({
@@ -540,24 +542,25 @@ const PostCard = ({ post, space, posts, setPosts, isAdmin, username, comments = 
 
       if (error) throw error;
 
+      // optimistic update: realtime will also add, but do local update
       const inserted = data?.[0];
       if (inserted) {
         setCommentsByPost(prev => ({
           ...prev,
           [post.id]: [...(prev[post.id] || []), inserted],
         }));
-        setCommentText('');
       }
+
+      setCommentText('');
     } catch (err) {
-      console.error('Add comment failed:', err);
+      console.error('Add comment error:', err);
+      alert('Failed to add comment.');
     }
   };
 
   const handleSetUsername = () => {
-    if (!tempUsername.trim()) return;
     const user = auth.currentUser;
-    if (!user) return;
-
+    if (!tempUsername.trim() || !user) return alert('Please enter a valid username.');
     const storedUsernames = JSON.parse(localStorage.getItem('peer_usernames') || '{}');
     storedUsernames[user.uid] = tempUsername;
     localStorage.setItem('peer_usernames', JSON.stringify(storedUsernames));
@@ -567,53 +570,94 @@ const PostCard = ({ post, space, posts, setPosts, isAdmin, username, comments = 
   };
 
   const deletePost = async () => {
-    if (!isAdmin) return;
     if (!window.confirm('Delete this post?')) return;
     setIsDeleting(true);
     try {
-      await supabase.from('posts').delete().eq('id', post.id);
+      const { error } = await supabase
+        .from('posts')
+        .delete()
+        .eq('id', post.id);
+
+      if (error) throw error;
+
       setPosts(prev => ({
         ...prev,
         [space]: prev[space].filter(p => p.id !== post.id),
       }));
+
+      // optionally delete comments for the post in DB
+      const { error: err2 } = await supabase
+        .from('comments')
+        .delete()
+        .eq('post_id', post.id);
+
+      if (err2) console.warn('Error deleting comments for post:', err2);
     } catch (err) {
-      console.error('Delete post failed:', err);
+      console.error('Delete post error:', err);
+      alert('Failed to delete post.');
     } finally {
       setIsDeleting(false);
+    }
+  };
+
+  const deleteComment = async (commentId) => {
+    if (!window.confirm('Delete this comment?')) return;
+    try {
+      const { error } = await supabase
+        .from('comments')
+        .delete()
+        .eq('id', commentId);
+
+      if (error) throw error;
+
+      setCommentsByPost(prev => ({
+        ...prev,
+        [post.id]: (prev[post.id] || []).filter(c => c.id !== commentId),
+      }));
+    } catch (err) {
+      console.error('Delete comment error:', err);
+      alert('Failed to delete comment.');
     }
   };
 
   return (
     <div className="post-card">
       <div className="post-header">
-        <strong>{post.user_name}</strong>
-        {isAdmin && <button onClick={deletePost}>🗑️</button>}
-      </div>
-      <div className="post-text">{post.text}</div>
-      <div className="comments-section">
-        {comments.map(c => (
-          <div key={c.id} className="comment">
-            <strong>{c.user_name}</strong>: {c.text}
-          </div>
-        ))}
-        <div className="add-comment">
-          <input
-            type="text"
-            placeholder="Write a comment..."
-            value={commentText}
-            onChange={(e) => setCommentText(e.target.value)}
-          />
-          <button onClick={addComment}>Comment</button>
-        </div>
+        <span className="post-user">{post.user_name || 'Anonymous'}</span>
+        <span className="post-time">{new Date(post.created_at).toLocaleString()}</span>
       </div>
 
+      <p className="post-text">
+        {post.text}
+        <span className="emotion-tag"> ({post.emotion})</span>
+      </p>
+
+      <div className="post-actions">
+        {isAdmin && (
+          <button className="delete-button" onClick={deletePost} disabled={isDeleting}>
+            {isDeleting ? 'Deleting...' : 'Delete'}
+          </button>
+        )}
+      </div>
+
+      <div className="comment-area">
+        <input
+          type="text"
+          placeholder="Add a comment..."
+          value={commentText}
+          onChange={(e) => setCommentText(e.target.value)}
+        />
+        <button onClick={addComment}>Comment</button>
+      </div>
+
+      {/* Username modal (for comments) */}
       {showUsernamePrompt && (
         <div className="username-modal">
           <div className="username-modal-content">
-            <h4>Enter Your Username</h4>
+            <h4>Enter your username</h4>
             <input
               type="text"
-              placeholder="e.g. MindfulSoul"
+              placeholder="e.g. MindfulUser"
               value={tempUsername}
               onChange={(e) => setTempUsername(e.target.value)}
             />
@@ -622,7 +666,19 @@ const PostCard = ({ post, space, posts, setPosts, isAdmin, username, comments = 
         </div>
       )}
 
-      {isDeleting && <div className="deleting-overlay">Deleting...</div>}
+      <div className="comments">
+        {(comments || []).map(c => (
+          <div key={c.id} className="comment">
+            <p className="comment-text">
+              💬 <strong>{c.user_name || 'Anonymous'}:</strong> {c.text}
+              {c.emotion && <span className="emotion-tag"> ({c.emotion})</span>}
+            </p>
+            {isAdmin && (
+              <button className="delete-comment" onClick={() => deleteComment(c.id)}>Delete</button>
+            )}
+          </div>
+        ))}
+      </div>
     </div>
   );
 };
