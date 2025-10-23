@@ -5,7 +5,6 @@ import { onAuthStateChanged, signInWithEmailAndPassword } from 'firebase/auth';
 import './PeerSupport.css';
 import { supabase } from '../supabaseClient';
 
-
 // -------------------- Spaces --------------------
 const userSpaces = [
   'Community Support',
@@ -520,7 +519,9 @@ const PostCard = ({ post, space, posts, setPosts, isAdmin, username, comments = 
     }
   }, []);
 
- const addComment = async () => {
+
+  
+const addComment = async () => {
   if (!commentText.trim()) return;
 
   let userNameToUse = commenterUsername || username; // fallback to parent username
@@ -530,6 +531,15 @@ const PostCard = ({ post, space, posts, setPosts, isAdmin, username, comments = 
   }
 
   try {
+    // Call emotion analyzer API for comment
+    const resp = await fetch('https://thesis-mental-health-production.up.railway.app/analyze', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: commentText }),
+    });
+    const analysis = resp.ok ? await resp.json() : { label: 'neutral' };
+    const emotion = analysis.label || 'neutral';
+
     const { data, error } = await supabase
       .from('comments')
       .insert([
@@ -537,7 +547,7 @@ const PostCard = ({ post, space, posts, setPosts, isAdmin, username, comments = 
           post_id: post.id,
           text: commentText,
           user_name: userNameToUse,
-          emotion: 'neutral',
+          emotion,
           created_at: new Date().toISOString(),
         },
       ])
