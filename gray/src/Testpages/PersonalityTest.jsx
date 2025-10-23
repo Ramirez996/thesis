@@ -231,7 +231,7 @@ const PersonalityTest = () => {
           className="footer-button"
           disabled={isLoading} // ✅ disable during loading
         >
-          {isChatbotVisible ? "Hide Chatbot" : "Open Chatbot"}
+          {isChatbotVisible ? "Hide Alarm bot" : "Open Alarm bot"}
         </button>
       )}
     </div>

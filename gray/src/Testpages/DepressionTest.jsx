@@ -260,7 +260,7 @@ const DepressionTest = () => {
             className="footer-button"
             disabled={isLoading}
           >
-            {isChatbotVisible ? "Hide Chatbot" : "Open Chatbot"}
+            {isChatbotVisible ? "Hide Alarm bot" : "Open Alarm bot"}
           </button>
           )}
         

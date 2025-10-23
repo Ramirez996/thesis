@@ -265,7 +265,7 @@ const WellTest = () => {
           ref={chatbotButtonRef}
           className="footer-button"
         >
-          {isChatbotVisible ? "Hide Chatbot" : "Open Chatbot"}
+          {isChatbotVisible ? "Hide Alarm bot" : "Open Alarm bot"}
         </button>
       )}
     </div>

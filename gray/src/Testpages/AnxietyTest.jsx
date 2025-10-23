@@ -278,7 +278,7 @@ const AnxietyTest = () => {
             ref={chatbotButtonRef}
             className="footer-button"
           >
-            {isChatbotVisible ? "Hide Chatbot" : "Open Chatbot"}
+            {isChatbotVisible ? "Hide Alarm bot" : "Open Alarmbot"}
           </button>
 
           {isChatbotVisible && (
