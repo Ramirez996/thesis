@@ -5,166 +5,22 @@ import './PeerSupport.css';
 import { supabase } from '../supabaseClient'; 
 
 // =========================================================================
-// ✅ PostCard Component (Now with Comments, Delete, and Supabase Logic)
+// ✅ FIX: PostCard component defined locally to prevent white screen crash
 // =========================================================================
 const PostCard = ({ post, space, posts, setPosts, isAdmin }) => {
-    const [commentInput, setCommentInput] = useState('');
-    const [showComments, setShowComments] = useState(false);
-
-    // --- HELPER FUNCTIONS ---
-
-    const getComments = () => post.comments || [];
-
-    const addComment = async () => {
-        if (!commentInput.trim()) return;
-        
-        const user = auth.currentUser;
-        const userName = isAdmin && user ? user.email : 'Anonymous';
-        
-        // 1. Analyze comment text for emotion (Optional - can be skipped for simplicity)
-        // You would uncomment and integrate your Flask /analyze endpoint here if needed.
-        // const emotion = 'neutral'; 
-
-        try {
-            // 2. Insert comment into Supabase
-            const { data: newComments, error } = await supabase
-                .from('comments')
-                .insert([
-                    { 
-                        post_id: post.id, 
-                        user_name: userName, 
-                        text: commentInput,
-                        // emotion: emotion, 
-                    },
-                ])
-                .select();
-
-            if (error) throw error;
-            
-            const newComment = newComments[0];
-
-            // 3. Update local state
-            setPosts(prev => ({
-                ...prev,
-                [space]: prev[space].map(p =>
-                    p.id === post.id 
-                        ? { ...p, comments: [...getComments(), newComment] } 
-                        : p
-                ),
-            }));
-
-            setCommentInput('');
-        } catch (error) {
-            console.error("Failed to add comment:", error);
-            alert('Failed to add comment.');
-        }
-    };
-
-    const deletePost = async () => {
-        if (!isAdmin) {
-            alert("Only administrators can delete posts.");
-            return;
-        }
-        if (!window.confirm("Are you sure you want to delete this post and all its comments?")) return;
-
-        try {
-            await supabase.from('posts').delete().eq('id', post.id);
-
-            // Update local state (Realtime subscription should also handle this)
-            setPosts(prev => ({
-                ...prev,
-                [space]: prev[space].filter(p => p.id !== post.id),
-            }));
-        } catch (error) {
-            console.error("Failed to delete post:", error);
-            alert('Failed to delete post.');
-        }
-    };
-
-    const deleteComment = async (commentId) => {
-        if (!isAdmin) {
-            alert("Only administrators can delete comments.");
-            return;
-        }
-        try {
-            await supabase.from('comments').delete().eq('id', commentId);
-
-            // Update local state (Realtime subscription should also handle this)
-            setPosts(prev => ({
-                ...prev,
-                [space]: prev[space].map(p =>
-                    p.id === post.id 
-                        ? { ...p, comments: p.comments.filter(c => c.id !== commentId) } 
-                        : p
-                ),
-            }));
-        } catch (error) {
-            console.error("Failed to delete comment:", error);
-            alert('Failed to delete comment.');
-        }
-    };
-
-    // --- RENDER ---
     return (
         <div className={`post-card ${post.emotion}`}>
             <div className="post-header">
-                <span className="post-user">
-                    {isAdmin && post.user_name !== 'Anonymous' ? post.user_name : 'Anonymous'}
-                </span>
+                <span className="post-user">{post.user_name}</span>
                 <span className="post-time">
                     {new Date(post.created_at).toLocaleString()}
                 </span>
-                {isAdmin && (
-                    <button className='delete-post-btn' onClick={deletePost}>
-                        🗑️ Delete Post
-                    </button>
-                )}
             </div>
-            
             <p className="post-text">{post.text}</p>
-            
             <div className="post-footer">
-                <span className="post-emotion">Emotion: <strong>{post.emotion}</strong></span>
-                <span className="comment-count-link" onClick={() => setShowComments(!showComments)}>
-                    💬 {getComments().length} Comments 
-                </span>
+                <span className="post-emotion">Emotion: {post.emotion}</span>
+                {/* You can add comment/delete logic here */}
             </div>
-
-            <div className="comment-box">
-                <input
-                    type="text"
-                    placeholder="Add a comment..."
-                    value={commentInput}
-                    onChange={(e) => setCommentInput(e.target.value)}
-                />
-                <button onClick={addComment} disabled={!commentInput.trim()}>
-                    Comment
-                </button>
-            </div>
-
-            {showComments && (
-                <div className="comments-section">
-                    {getComments().map(comment => (
-                        <div key={comment.id} className="comment">
-                            <span className="comment-user">
-                                {isAdmin && comment.user_name !== 'Anonymous' ? comment.user_name : 'Anonymous'}
-                            </span>
-                            <p className="comment-text">
-                                {comment.text}
-                                {comment.emotion && <span className="emotion-tag"> ({comment.emotion})</span>}
-                            </p>
-                            {isAdmin && (
-                                <button
-                                    className="delete-comment-btn"
-                                    onClick={() => deleteComment(comment.id)}
-                                >
-                                    ❌
-                                </button>
-                            )}
-                        </div>
-                    ))}
-                </div>
-            )}
         </div>
     );
 };
@@ -219,14 +75,13 @@ const PeerSupport = ({ initialSpace = 'Community Support' }) => {
     return () => unsubscribe();
   }, []);
 
-  // 1️⃣ Fetch posts AND their comments from Supabase on mount
+  // 1️⃣ Fetch posts from Supabase on mount
   useEffect(() => {
     const fetchPosts = async () => {
       try {
-        // Fetch posts and join the comments table
         const { data, error } = await supabase
           .from('posts')
-          .select('*, comments(*)') // Select all post fields AND all related comments
+          .select('*')
           .order('created_at', { ascending: false });
 
         if (error) throw error;
@@ -238,10 +93,6 @@ const PeerSupport = ({ initialSpace = 'Community Support' }) => {
         });
         data.forEach(post => {
           if (grouped[post.space]) {
-            // Sort comments by creation time
-            if (post.comments) {
-                post.comments.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
-            }
             grouped[post.space].push(post);
           }
         });
@@ -255,91 +106,31 @@ const PeerSupport = ({ initialSpace = 'Community Support' }) => {
     fetchPosts();
   }, []); 
 
-  // 2️⃣ Realtime subscription for posts and comments
+  // 2️⃣ Realtime subscription for new posts
   useEffect(() => {
-    // --- POSTS Channel ---
-    const postsChannel = supabase
+    const channel = supabase
       .channel('posts-changes')
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'posts' },
         payload => {
-          // Add new post
           setPosts(prev => ({
             ...prev,
-            [payload.new.space]: [{...payload.new, comments: []}, ...(prev[payload.new.space] || [])],
+            [payload.new.space]: [payload.new, ...(prev[payload.new.space] || [])],
           }));
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: 'DELETE', schema: 'public', table: 'posts' },
-        payload => {
-            // Remove deleted post
-            const spaceKey = payload.old.space; // Assumes 'space' field is available in payload.old
-            setPosts(prev => ({
-                ...prev,
-                [spaceKey]: (prev[spaceKey] || []).filter(p => p.id !== payload.old.id),
-            }));
         }
       )
       .subscribe();
 
-    // --- COMMENTS Channel ---
-    const commentsChannel = supabase
-        .channel('comments-changes')
-        .on(
-            'postgres_changes',
-            { event: 'INSERT', schema: 'public', table: 'comments' },
-            payload => {
-                // Find the post and add the new comment
-                setPosts(prev => {
-                    const nextState = {...prev};
-                    for (const space in nextState) {
-                        const postIndex = nextState[space].findIndex(p => p.id === payload.new.post_id);
-                        if (postIndex !== -1) {
-                            const post = nextState[space][postIndex];
-                            post.comments = [...(post.comments || []), payload.new];
-                            break; // Stop after finding the post
-                        }
-                    }
-                    return nextState;
-                });
-            }
-        )
-        .on(
-            'postgres_changes',
-            { event: 'DELETE', schema: 'public', table: 'comments' },
-            payload => {
-                // Find the post and remove the deleted comment
-                setPosts(prev => {
-                    const nextState = {...prev};
-                    for (const space in nextState) {
-                        const postIndex = nextState[space].findIndex(p => p.id === payload.old.post_id);
-                        if (postIndex !== -1) {
-                            const post = nextState[space][postIndex];
-                            post.comments = (post.comments || []).filter(c => c.id !== payload.old.id);
-                            break; // Stop after finding the post
-                        }
-                    }
-                    return nextState;
-                });
-            }
-        )
-        .subscribe();
-
     return () => {
-      supabase.removeChannel(postsChannel);
-      supabase.removeChannel(commentsChannel);
+      supabase.removeChannel(channel);
     };
   }, []);
-
 
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
-      // NOTE: Replace 'yourPassword' with the actual admin password from your Firebase setup
-      await signInWithEmailAndPassword(auth, email, 'yourPassword'); 
+      await signInWithEmailAndPassword(auth, email, 'yourPassword');
     } catch (error) {
       console.error('Login failed:', error);
       alert('Failed to log in.');
@@ -348,9 +139,7 @@ const PeerSupport = ({ initialSpace = 'Community Support' }) => {
 
   if (loading) return <div>Loading...</div>;
 
-  // Determine which spaces to show in the left sidebar
   const spaces = isAdmin ? adminSpaces : userSpaces;
-  const allSpaces = [...userSpaces, ...adminSpaces, ...relatedCommunities]; // Used for Post state initialization
 
   const handlePost = async () => {
     if (!postInput.trim()) return;
@@ -361,7 +150,6 @@ const PeerSupport = ({ initialSpace = 'Community Support' }) => {
 
     try {
       // Step 1️⃣ — Send text to Flask backend (Railway)
-      // NOTE: Use the correct API URL for your Railway app
       const response = await fetch('https://thesis-mental-health-production.up.railway.app/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -371,7 +159,7 @@ const PeerSupport = ({ initialSpace = 'Community Support' }) => {
       const analysis = await response.json();
       const emotion = analysis.label || 'neutral';
 
-      // Step 2️⃣ — Save the post in Supabase
+      // Step 2️⃣ — Save the post in Supabase (This should now work for 'Depression')
       const { data, error } = await supabase
         .from('posts')
         .insert([
@@ -387,15 +175,16 @@ const PeerSupport = ({ initialSpace = 'Community Support' }) => {
 
       if (error) throw error;
 
-      // Step 3️⃣ — The Realtime subscription should handle updating the local state, 
-      // but for immediate display, you can still update it here.
-      // However, relying on the subscription is cleaner. We'll skip manual state update 
-      // here to avoid duplicates/race conditions with Realtime.
+      // Step 3️⃣ — Add to local state
+      setPosts(prev => ({
+        ...prev,
+        [activeSpace]: [data[0], ...prev[activeSpace]],
+      }));
 
       setPostInput('');
     } catch (error) {
       console.error('Failed to post:', error);
-      alert('Failed to post — please check console for details.');
+      alert('Failed to post — please try again.');
     } finally {
       setIsPosting(false);
     }
@@ -406,8 +195,7 @@ const PeerSupport = ({ initialSpace = 'Community Support' }) => {
       alert('Please select a CSV file.');
       return;
     }
-    // TODO: Implement actual CSV upload and training logic to your Flask backend here
-    alert('CSV upload simulated — replace with backend endpoint call.');
+    alert('CSV upload simulated — replace with backend endpoint.');
   };
 
   if (isPosting) {
@@ -478,8 +266,7 @@ const PeerSupport = ({ initialSpace = 'Community Support' }) => {
         </div>
       );
     }
-    
-    // Default or Admin/User Spaces
+
     return (
       <>
         <div className="posts-list">
