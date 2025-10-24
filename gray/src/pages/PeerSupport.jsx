@@ -638,7 +638,7 @@ const addComment = async () => {
     <div className="post-card">
       <div className="post-header">
         <span className="post-user">{post.user_name || 'Anonymous'}</span>
-        <span className="post-time">{new Date(post.created_at).toLocaleString()}</span>
+       
       </div>
 
       <p className="post-text">
