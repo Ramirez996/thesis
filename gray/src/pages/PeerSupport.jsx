@@ -531,21 +531,35 @@ const addComment = async () => {
   }
 
   try {
-    // Send to your Flask backend comment endpoint
-    const resp = await fetch(`https://thesis-mental-health-production.up.railway.app/posts/${post.id}/comments`, {
+    // Optional: still call your Flask emotion analyzer
+    const resp = await fetch('https://thesis-mental-health-production.up.railway.app/analyze', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text: commentText, user_name: userNameToUse }),
+      body: JSON.stringify({ text: commentText }),
     });
+    const analysis = resp.ok ? await resp.json() : { label: 'neutral' };
+    const emotion = analysis.label || 'neutral';
 
-    if (!resp.ok) throw new Error('Failed to save comment to backend');
+    // ✅ Save to Supabase (with user_name)
+    const { data, error } = await supabase
+      .from('comments')
+      .insert([
+        {
+          post_id: post.id,
+          text: commentText,
+          user_name: userNameToUse,
+          emotion,
+          created_at: new Date().toISOString(),
+        },
+      ])
+      .select();
 
-    const newComment = await resp.json();
+    if (error) throw error;
 
-    // Append locally
+    // ✅ Update UI
     setCommentsByPost(prev => ({
       ...prev,
-      [post.id]: [...(prev[post.id] || []), newComment],
+      [post.id]: [...(prev[post.id] || []), data[0]],
     }));
 
     setCommentText('');
@@ -554,6 +568,7 @@ const addComment = async () => {
     alert('Failed to add comment.');
   }
 };
+
 
 
 
