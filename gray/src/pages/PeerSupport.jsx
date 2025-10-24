@@ -79,6 +79,7 @@ const PeerSupport = ({ initialSpace = 'Community Support' }) => {
     return () => unsubscribe();
   }, []);
 
+  //setUserName
   const handleSetUsername = () => {
     if (!tempUsername.trim()) {
       alert('Please enter a valid username.');
