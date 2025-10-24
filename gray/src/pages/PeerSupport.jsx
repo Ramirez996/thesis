@@ -79,7 +79,6 @@ const PeerSupport = ({ initialSpace = 'Community Support' }) => {
     return () => unsubscribe();
   }, []);
 
-  //setUserName
   const handleSetUsername = () => {
     if (!tempUsername.trim()) {
       alert('Please enter a valid username.');
@@ -525,44 +524,29 @@ const PostCard = ({ post, space, posts, setPosts, isAdmin, username, comments = 
 const addComment = async () => {
   if (!commentText.trim()) return;
 
-  let userNameToUse = commenterUsername || username; // fallback to parent username
+  let userNameToUse = commenterUsername || username;
   if (!userNameToUse) {
     setShowUsernamePrompt(true);
     return;
   }
 
   try {
-    // Call emotion analyzer API for comment
-    const resp = await fetch('https://thesis-mental-health-production.up.railway.app/analyze', {
+    // Send to your Flask backend comment endpoint
+    const resp = await fetch(`https://thesis-mental-health-production.up.railway.app/posts/${post.id}/comments`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text: commentText }),
+      body: JSON.stringify({ text: commentText, user_name: userNameToUse }),
     });
-    const analysis = resp.ok ? await resp.json() : { label: 'neutral' };
-    const emotion = analysis.label || 'neutral';
 
-    const { data, error } = await supabase
-      .from('comments')
-      .insert([
-        {
-          post_id: post.id,
-          text: commentText,
-          user_name: userNameToUse,
-          emotion,
-          created_at: new Date().toISOString(),
-        },
-      ])
-      .select();
+    if (!resp.ok) throw new Error('Failed to save comment to backend');
 
-    if (error) throw error;
+    const newComment = await resp.json();
 
-    const inserted = data?.[0];
-    if (inserted) {
-      setCommentsByPost(prev => ({
-        ...prev,
-        [post.id]: [...(prev[post.id] || []), inserted],
-      }));
-    }
+    // Append locally
+    setCommentsByPost(prev => ({
+      ...prev,
+      [post.id]: [...(prev[post.id] || []), newComment],
+    }));
 
     setCommentText('');
   } catch (err) {
@@ -570,6 +554,7 @@ const addComment = async () => {
     alert('Failed to add comment.');
   }
 };
+
 
 
   const handleSetUsername = () => {
