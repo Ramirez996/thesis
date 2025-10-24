@@ -588,17 +588,9 @@ def create_post():
     data = request.get_json()
     text = data.get("text","")
     space = data.get("space","Community Support")
-    
-    # 🌟 FIX 1: Retrieve user_name from request data
-    user_name = data.get("user_name", "Anonymous") 
-    
     emotion = analyze_text(text).get("label","neutral")
 
-    # 🌟 FIX 2: Include user_name in the INSERT query
-    cursor.execute(
-        "INSERT INTO posts (user_name, space, text, emotion) VALUES (%s,%s,%s,%s) RETURNING id",
-        (user_name, space, text, emotion)
-    )    
+    cursor.execute("INSERT INTO posts (space,text,emotion) VALUES (%s,%s,%s) RETURNING id",(space,text,emotion))
     post_id = cursor.fetchone()['id']
     db.commit()
     return jsonify({"id":post_id,"space":space,"text":text,"emotion":emotion,"comments":[]})
@@ -607,12 +599,13 @@ def create_post():
 def add_comment(post_id):
     data = request.get_json()
     text = data.get("text","")
+    user_name = data.get("user_name", "Anonymous")
     emotion = analyze_text(text).get("label","neutral")
 
-    cursor.execute("INSERT INTO comments (post_id,text,emotion) VALUES (%s,%s,%s) RETURNING id",(post_id,text,emotion))
+    cursor.execute("INSERT INTO comments (post_id,user_name,text,emotion) VALUES (%s,%s,%s,%s) RETURNING id",(post_id,user_name,text,emotion))
     comment_id = cursor.fetchone()['id']
     db.commit()
-    return jsonify({"id":comment_id,"post_id":post_id,"text":text,"emotion":emotion})
+    return jsonify({"id":comment_id,"post_id":post_id, "user_name":"user_name","text":text,"emotion":emotion})
 
 @app.route('/posts/<int:post_id>', methods=['DELETE'])
 def delete_post(post_id):
