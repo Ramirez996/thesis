@@ -847,6 +847,36 @@ def debug_model():
     
     return jsonify(debug_info)
 
+
+@app.route("/anxiety_history", methods=["GET"])
+def get_anxiety_history():
+    """Return all anxiety test results from the database."""
+    try:
+        cursor = ensure_db_connection()
+        cursor.execute("""
+            SELECT id, user_name, score, risk_level, created_at
+            FROM anxiety_results
+            ORDER BY created_at DESC
+        """)
+        rows = cursor.fetchall()
+
+        history = [
+            {
+                "id": r[0],
+                "user_name": r[1],
+                "score": r[2],
+                "risk_level": r[3],
+                "created_at": r[4].strftime("%Y-%m-%d %H:%M:%S")
+            }
+            for r in rows
+        ]
+        return jsonify(history), 200
+
+    except Exception as e:
+        print(f"❌ Error fetching anxiety history: {e}")
+        return jsonify({"error": "Failed to retrieve test history"}), 500
+
+
 # ---------------- CORS Preflight Handler ----------------
 @app.before_request
 def handle_preflight():
