@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./anxiety.css";
 import Chatbot from "./Chatbot.jsx";
-import { supabase } from "../supabaseClient"; // ✅ make sure path is correct
+import { supabase } from '../supabaseClient';
 
 const Anxiety = () => {
   const navigate = useNavigate();
