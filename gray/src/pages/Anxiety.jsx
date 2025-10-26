@@ -1,27 +1,34 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./anxiety.css";
-import Chatbot from "./Chatbot.jsx";
-import { supabase } from '../supabaseClient';
+
+const API_URL = "https://thesis-mental-health-production.up.railway.app";
 
 const Anxiety = () => {
   const navigate = useNavigate();
   const [showModal, setShowModal] = useState(false);
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
+  // Fetch data from backend (Supabase via Flask API)
   const fetchHistory = async () => {
     setLoading(true);
+    setError("");
     try {
-      const { data, error } = await supabase
-        .from("anxiety_results") // 👈 table name in Supabase
-        .select("id, user_name, score, risk_level, created_at")
-        .order("created_at", { ascending: false });
+      const response = await fetch(`${API_URL}/anxiety_history`); // <-- Make sure this route exists
+      if (!response.ok) throw new Error("Failed to fetch data");
+      const data = await response.json();
 
-      if (error) throw error;
-      setHistory(data);
+      // If your API returns a list of records:
+      if (Array.isArray(data) && data.length > 0) {
+        setHistory(data);
+      } else {
+        setHistory([]);
+      }
     } catch (err) {
-      console.error("Error fetching history from Supabase:", err.message);
+      console.error("Error fetching history:", err);
+      setError("Unable to fetch history. Please try again later.");
     } finally {
       setLoading(false);
     }
@@ -29,7 +36,7 @@ const Anxiety = () => {
 
   const openModal = () => {
     setShowModal(true);
-    fetchHistory(); // fetch history when opening
+    fetchHistory(); // Load data when modal opens
   };
 
   const closeModal = () => {
@@ -50,24 +57,27 @@ const Anxiety = () => {
           This test is not a diagnosis, but it can give you a better
           understanding of how anxiety might be affecting your daily life.
         </p>
+
         <p>
           Each question will ask you how often you’ve been bothered by a
           specific issue — your options will range from:
-          <ul>
-            <li>Not at all (0)</li>
-            <li>Several days (1)</li>
-            <li>More than half the days (2)</li>
-            <li>Nearly every day (3)</li>
-          </ul>
         </p>
+        <ul>
+          <li>Not at all (0)</li>
+          <li>Several days (1)</li>
+          <li>More than half the days (2)</li>
+          <li>Nearly every day (3)</li>
+        </ul>
+
         <p>
           <strong>This test can help you:</strong>
-          <ul>
-            <li>Recognize symptoms of anxiety</li>
-            <li>Reflect on your recent mental health</li>
-            <li>Consider whether further support may be helpful</li>
-          </ul>
         </p>
+        <ul>
+          <li>Recognize symptoms of anxiety</li>
+          <li>Reflect on your recent mental health</li>
+          <li>Consider whether further support may be helpful</li>
+        </ul>
+
         <p>
           <em>
             Tip: Try to answer honestly based on how you've felt over the past
@@ -87,23 +97,27 @@ const Anxiety = () => {
         </button>
       </div>
 
-      {/* 🧠 Modal */}
+      {/* 🧠 MODAL */}
       {showModal && (
         <div className="modal-overlay" onClick={closeModal}>
           <div
             className="modal-content"
-            onClick={(e) => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()} // prevent closing when clicking inside
           >
             <h3>Anxiety Test History</h3>
+
             {loading ? (
               <p>Loading...</p>
+            ) : error ? (
+              <p className="error-text">{error}</p>
             ) : history.length > 0 ? (
               <table className="history-table">
                 <thead>
                   <tr>
                     <th>User</th>
                     <th>Score</th>
-                    <th>Risk Level</th>
+                    <th>Result</th>
+                    <th>Final Risk</th>
                     <th>Date</th>
                   </tr>
                 </thead>
@@ -112,8 +126,14 @@ const Anxiety = () => {
                     <tr key={item.id}>
                       <td>{item.user_name}</td>
                       <td>{item.score}</td>
-                      <td>{item.risk_level}</td>
-                      <td>{new Date(item.created_at).toLocaleString()}</td>
+                      <td>{item.result_text}</td>
+                      <td>{item.final_risk || item.risk_level}</td>
+                      <td>
+                        {new Date(item.created_at).toLocaleString("en-PH", {
+                          dateStyle: "medium",
+                          timeStyle: "short",
+                        })}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -121,6 +141,7 @@ const Anxiety = () => {
             ) : (
               <p>No test history found.</p>
             )}
+
             <button className="close-modal-btn" onClick={closeModal}>
               Close
             </button>
