@@ -31,3 +31,67 @@
   margin-left: 1.5rem;
   list-style-type: disc;
 }
+.mental-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  color: var(--text-dark);
+  padding: 2rem;
+}
+
+.mental-description button {
+  font-size: 20px;
+  margin-bottom: 20px;
+  text-align: center;
+  border-radius: 30px;
+  background-color: rgba(8, 134, 143, 0.699);
+  font-weight: bold;
+}
+
+.mental-description h2 {
+  margin-bottom: 1rem;
+}
+
+.mental-description p {
+  margin-bottom: 1rem;
+  line-height: 1.6;
+}
+
+.mental-description ul {
+  text-align: left;
+  margin-left: 1.5rem;
+  list-style-type: disc;
+}
+
+.history-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+}
+
+.history-table th,
+.history-table td {
+  border: 1px solid #ccc;
+  padding: 8px 12px;
+  text-align: center;
+}
+
+.history-table th {
+  background-color: #f4f4f4;
+}
+
+.back-btn {
+  background-color: #888;
+  color: white;
+  padding: 6px 12px;
+  border: none;
+  border-radius: 8px;
+  margin-bottom: 10px;
+  cursor: pointer;
+}
+
+.back-btn:hover {
+  background-color: #666;
+}
