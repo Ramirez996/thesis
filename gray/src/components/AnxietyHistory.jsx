@@ -43,17 +43,17 @@ const AnxietyHistory = () => {
         <table className="history-table">
           <thead>
             <tr>
-              <th>Date</th>
+              <th>User Name</th>
               <th>Score</th>
-              <th>Risk Level</th>
+              <th>Date</th>
             </tr>
           </thead>
           <tbody>
             {history.map((record) => (
               <tr key={record.id}>
-                <td>{new Date(record.created_at).toLocaleString()}</td>
+                <td>{record.user_name}</td>
                 <td>{record.score}</td>
-                <td>{record.risk_level}</td>
+                <td>{new Date(record.created_at).toLocaleString()}</td>
               </tr>
             ))}
           </tbody>
