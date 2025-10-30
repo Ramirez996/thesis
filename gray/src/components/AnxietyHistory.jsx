@@ -17,7 +17,7 @@ const AnxietyHistory = () => {
 
     const { data, error } = await supabase
       .from("anxiety_results") // make sure your table name matches
-      .select("id, user_name, score, risk_level, created_at")
+      .select("id, user_name, score, created_at")
       .order("created_at", { ascending: false });
 
     if (error) {
