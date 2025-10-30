@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { supabase } from "../supabaseClient";
 import { useNavigate } from "react-router-dom";
-import "./anxiety.css";
+import "../pages/anxiety.css";
 
 const AnxietyHistory = () => {
   const [history, setHistory] = useState([]);
