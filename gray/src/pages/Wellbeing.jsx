@@ -33,6 +33,13 @@ const Wellbeing = () => {
         <button className="start-test-btn" onClick={() => navigate("/well-being-test")}>
           Start Test
         </button>
+        <br></br>
+        <button
+          className="history-btn"
+          onClick={() => navigate("/anxiety-history")}
+        >
+          Test History
+        </button>
       </div>
     </div>
   );
