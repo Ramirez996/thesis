@@ -34,12 +34,10 @@ const Wellbeing = () => {
           Start Test
         </button>
         <br></br>
-        <button
-          className="history-btn"
-          onClick={() => navigate("/anxiety-history")}
-        >
-          Test History
-        </button>
+        <button onClick={() => navigate("/history", { state: { type: "wellbeing" } })}>
+  View Well-being History
+</button>
+
       </div>
     </div>
   );
