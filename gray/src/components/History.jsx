@@ -1,40 +1,23 @@
 import React, { useEffect, useState } from "react";
-import { supabase } from "../supabaseClient";
+// import { supabase } from "../supabaseClient";
 import { useLocation, useNavigate } from "react-router-dom";
 import "../pages/anxiety.css";
 
 const History = () => {
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState(null);
   const navigate = useNavigate();
   const location = useLocation();
-  const { type } = location.state || {}; // e.g., "anxiety", "depression", etc.
+  const { type } = location.state || {}; // type = "anxiety", "depression", etc.
 
   useEffect(() => {
-    getUserAndHistory();
+    if (!type) return;
+    fetchHistory(type);
   }, [type]);
 
-  const getUserAndHistory = async () => {
+  const fetchHistory = async (type) => {
     setLoading(true);
 
-    // Get the currently logged-in user
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser();
-
-    if (userError || !user) {
-      console.error("Error fetching user:", userError);
-      setLoading(false);
-      return;
-    }
-
-    setUser(user);
-    await fetchHistory(type, user);
-  };
-
-  const fetchHistory = async (type, user) => {
     // Map test types to table names
     const tableMap = {
       anxiety: "anxiety_results",
@@ -50,20 +33,13 @@ const History = () => {
       return;
     }
 
-    // Adjust depending on how your tables store user info
-    // Common options: user_id (UUID from Supabase Auth) or user_name (string)
     const { data, error } = await supabase
       .from(tableName)
       .select("id, user_name, score, created_at")
-      .eq("user_id", user.id) // filters to logged-in user's results
       .order("created_at", { ascending: false });
 
-    if (error) {
-      console.error(`Error fetching ${type} history:`, error);
-      setHistory([]);
-    } else {
-      setHistory(data || []);
-    }
+    if (error) console.error(`Error fetching ${type} history:`, error);
+    else setHistory(data || []);
 
     setLoading(false);
   };
@@ -93,7 +69,7 @@ const History = () => {
       {loading ? (
         <p>Loading your {type} history...</p>
       ) : history.length === 0 ? (
-        <p>No previous {type} test results found for your account.</p>
+        <p>No previous {type} test results found.</p>
       ) : (
         <table className="history-table">
           <thead>
