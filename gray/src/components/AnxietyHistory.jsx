@@ -9,28 +9,71 @@ const AnxietyHistory = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetchHistory();
+    fetchAllHistories();
   }, []);
 
-  const fetchHistory = async () => {
+  const fetchAllHistories = async () => {
     setLoading(true);
 
-    const { data, error } = await supabase
-      .from("anxiety_results") // make sure your table name matches
-      .select("id, user_name, score, created_at")
-      .order("created_at", { ascending: false });
+    try {
+      // Fetch anxiety results
+      const { data: anxietyData, error: anxietyError } = await supabase
+        .from("anxiety_results")
+        .select("id, user_name, score, created_at")
+        .order("created_at", { ascending: false });
 
-    if (error) {
-      console.error("Error fetching history:", error);
-    } else {
-      setHistory(data);
+      // Fetch depression results
+      const { data: depressionData, error: depressionError } = await supabase
+        .from("depression_results")
+        .select("id, user_name, score, created_at")
+        .order("created_at", { ascending: false });
+
+      // Fetch well-being results
+      const { data: wellbeingData, error: wellbeingError } = await supabase
+        .from("wellbeing_results")
+        .select("id, user_name, score, created_at")
+        .order("created_at", { ascending: false });
+
+      // Fetch personality results
+      const { data: personalityData, error: personalityError } = await supabase
+        .from("personality_results")
+        .select("id, user_name, score, created_at")
+        .order("created_at", { ascending: false });
+
+      // Combine all results into one array
+      const allData = [
+        ...(anxietyData?.map((item) => ({ ...item, type: "Anxiety" })) || []),
+        ...(depressionData?.map((item) => ({ ...item, type: "Depression" })) ||
+          []),
+        ...(wellbeingData?.map((item) => ({ ...item, type: "Well-being" })) ||
+          []),
+        ...(personalityData?.map((item) => ({ ...item, type: "Personality" })) ||
+          []),
+      ];
+
+      // Sort all results by date (newest first)
+      const sorted = allData.sort(
+        (a, b) => new Date(b.created_at) - new Date(a.created_at)
+      );
+
+      setHistory(sorted);
+
+      if (anxietyError || depressionError || wellbeingError || personalityError) {
+        console.error(
+          "Error fetching results:",
+          anxietyError || depressionError || wellbeingError || personalityError
+        );
+      }
+    } catch (err) {
+      console.error("Unexpected error fetching history:", err);
     }
+
     setLoading(false);
   };
 
   return (
     <div className="mental-container">
-      <h2>Your Anxiety Test History</h2>
+      <h2>Your Test History</h2>
       <button onClick={() => navigate(-1)} className="back-btn">
         ← Back
       </button>
@@ -43,6 +86,7 @@ const AnxietyHistory = () => {
         <table className="history-table">
           <thead>
             <tr>
+              <th>Type</th>
               <th>User Name</th>
               <th>Score</th>
               <th>Date</th>
@@ -50,7 +94,8 @@ const AnxietyHistory = () => {
           </thead>
           <tbody>
             {history.map((record) => (
-              <tr key={record.id}>
+              <tr key={`${record.type}-${record.id}`}>
+                <td>{record.type}</td>
                 <td>{record.user_name}</td>
                 <td>{record.score}</td>
                 <td>{new Date(record.created_at).toLocaleString()}</td>
