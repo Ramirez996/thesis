@@ -1,3 +1,4 @@
+// Dashboard.jsx
 import React from "react";
 import { useLocation } from "react-router-dom";
 
@@ -8,7 +9,7 @@ import DashboardView from "./pages/DashboardView";
 const Dashboard = ({ children }) => {
   const location = useLocation();
 
-  //routes na maghihide once na pumindot ako sa isa sa mga buttons
+  // routes that hide DashboardView when active
   const hideDashboardViewOnRoutes = [
     "/anxiety",
     "/depression",
@@ -18,25 +19,20 @@ const Dashboard = ({ children }) => {
     "/depression-test",
     "/well-being-test",
     "/eating-disorder-test",
+    "/anxiety-history", // ✅ add this line
   ];
 
   const shouldShowDashboardView = !hideDashboardViewOnRoutes.includes(location.pathname);
 
   return (
     <div className="dashboard">
-
-
-
       {/* Header */}
       <Header onLoginClick={() => console.log("Login clicked")} />
 
-
-      {/* Dashboard View - show only on specific routes */}
+      {/* Dashboard View */}
       {shouldShowDashboardView && <DashboardView />}
 
-
-
-      {/* Render nested route content */}
+      {/* Page Content */}
       <main className="main-content">{children}</main>
 
       {/* Footer */}
