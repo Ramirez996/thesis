@@ -19,7 +19,7 @@ const Dashboard = ({ children }) => {
     "/depression-test",
     "/well-being-test",
     "/eating-disorder-test",
-    "/anxiety-history", // ✅ add this line
+    "/history", // ✅ add this line
   ];
 
   const shouldShowDashboardView = !hideDashboardViewOnRoutes.includes(location.pathname);
