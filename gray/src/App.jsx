@@ -12,7 +12,7 @@ import WellTest from "./Testpages/WellTest";
 import Chatbot from "./pages/Chatbot";
 import "./Dashboard.css";
 import "./pages/anxiety.css";
-import AnxietyHistory from "./components/AnxietyHistory.jsx";
+import History from "./components/History.jsx";
 
 const App = () => {
   return (
@@ -27,14 +27,14 @@ const App = () => {
               <Routes>
                 <Route path="/chatbot" element={<Chatbot />} />
                 <Route path="/anxiety" element={<Anxiety />} />
-                <Route path="/anxiety-test" element={<AnxietyTest />} />
-                <Route path="/anxiety-history" element={<AnxietyHistory />} />
+                <Route path="/anxiety-test" element={<AnxietyTest />} />     
                 <Route path="/depression" element={<Depression />} />
                 <Route path="/depression-test" element={<DepressionTest />} />
                 <Route path="/well-being" element={<WellBeing />} />
                 <Route path="/well-being-test" element={<WellTest />} />
                 <Route path="/eating-disorder" element={<EatingDisorder />} />
                 <Route path="/eating-disorder-test" element={<EatingTest />} />
+                <Route path="/history" element={<History />} />
               </Routes>
             </Dashboard>
           }
