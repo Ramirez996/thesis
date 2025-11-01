@@ -46,12 +46,9 @@ const Personality = () => {
           Start Test
         </button>
         <br></br>
-        <button
-          className="history-btn"
-          onClick={() => navigate("/anxiety-history")}
-        >
-          Test History
-        </button>
+<button onClick={() => navigate("/history", { state: { type: "personality" } })}>
+  View Personality History
+</button>
       </div>
     </div>
   );
