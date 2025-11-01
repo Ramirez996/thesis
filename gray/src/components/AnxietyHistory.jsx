@@ -4,7 +4,10 @@ import { useNavigate } from "react-router-dom";
 import "../pages/anxiety.css";
 
 const AnxietyHistory = () => {
-  const [history, setHistory] = useState([]);
+  const [anxietyHistory, setAnxietyHistory] = useState([]);
+  const [depressionHistory, setDepressionHistory] = useState([]);
+  const [wellbeingHistory, setWellbeingHistory] = useState([]);
+  const [personalityHistory, setPersonalityHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
@@ -16,86 +19,61 @@ const AnxietyHistory = () => {
     setLoading(true);
 
     try {
-      // Fetch anxiety results
+      // Fetch Anxiety results
       const { data: anxietyData, error: anxietyError } = await supabase
         .from("anxiety_results")
         .select("id, user_name, score, created_at")
         .order("created_at", { ascending: false });
+      if (anxietyError) console.error("Anxiety fetch error:", anxietyError);
+      else setAnxietyHistory(anxietyData || []);
 
-      // Fetch depression results
+      // Fetch Depression results
       const { data: depressionData, error: depressionError } = await supabase
         .from("depression_results")
         .select("id, user_name, score, created_at")
         .order("created_at", { ascending: false });
+      if (depressionError) console.error("Depression fetch error:", depressionError);
+      else setDepressionHistory(depressionData || []);
 
-      // Fetch well-being results
+      // Fetch Well-being results
       const { data: wellbeingData, error: wellbeingError } = await supabase
         .from("wellbeing_results")
         .select("id, user_name, score, created_at")
         .order("created_at", { ascending: false });
+      if (wellbeingError) console.error("Well-being fetch error:", wellbeingError);
+      else setWellbeingHistory(wellbeingData || []);
 
-      // Fetch personality results
+      // Fetch Personality results
       const { data: personalityData, error: personalityError } = await supabase
         .from("personality_results")
         .select("id, user_name, score, created_at")
         .order("created_at", { ascending: false });
-
-      // Combine all results into one array
-      const allData = [
-        ...(anxietyData?.map((item) => ({ ...item, type: "Anxiety" })) || []),
-        ...(depressionData?.map((item) => ({ ...item, type: "Depression" })) ||
-          []),
-        ...(wellbeingData?.map((item) => ({ ...item, type: "Well-being" })) ||
-          []),
-        ...(personalityData?.map((item) => ({ ...item, type: "Personality" })) ||
-          []),
-      ];
-
-      // Sort all results by date (newest first)
-      const sorted = allData.sort(
-        (a, b) => new Date(b.created_at) - new Date(a.created_at)
-      );
-
-      setHistory(sorted);
-
-      if (anxietyError || depressionError || wellbeingError || personalityError) {
-        console.error(
-          "Error fetching results:",
-          anxietyError || depressionError || wellbeingError || personalityError
-        );
-      }
+      if (personalityError) console.error("Personality fetch error:", personalityError);
+      else setPersonalityHistory(personalityData || []);
     } catch (err) {
-      console.error("Unexpected error fetching history:", err);
+      console.error("Unexpected error fetching histories:", err);
     }
 
     setLoading(false);
   };
 
-  return (
-    <div className="mental-container">
-      <h2>Your Test History</h2>
-      <button onClick={() => navigate(-1)} className="back-btn">
-        ← Back
-      </button>
-
-      {loading ? (
-        <p>Loading your test history...</p>
-      ) : history.length === 0 ? (
-        <p>No previous test results found.</p>
+  const renderTable = (title, data) => (
+    <div className="test-section">
+      <h3>{title}</h3>
+      {data.length === 0 ? (
+        <p>No {title.toLowerCase()} test results found.</p>
       ) : (
         <table className="history-table">
           <thead>
             <tr>
-              <th>Type</th>
               <th>User Name</th>
               <th>Score</th>
               <th>Date</th>
             </tr>
           </thead>
           <tbody>
-            {history.map((record) => (
-              <tr key={`${record.type}-${record.id}`}>
-                <td>{record.type}</td>
+            {data.map((record) => (
+              <tr key={record.id}>
                 <td>{record.user_name}</td>
                 <td>{record.score}</td>
                 <td>{new Date(record.created_at).toLocaleString()}</td>
@@ -103,6 +81,26 @@ const AnxietyHistory = () => {
             ))}
           </tbody>
         </table>
+      )}
+    </div>
+  );
+
+  return (
+    <div className="mental-container">
+      <h2>Your Test Histories</h2>
+      <button onClick={() => navigate(-1)} className="back-btn">
+        ← Back
+      </button>
+
+      {loading ? (
+        <p>Loading all test histories...</p>
+      ) : (
+        <>
+          {renderTable("Anxiety", anxietyHistory)}
+          {renderTable("Depression", depressionHistory)}
+          {renderTable("Well-being", wellbeingHistory)}
+          {renderTable("Personality", personalityHistory)}
+        </>
       )}
     </div>
   );
