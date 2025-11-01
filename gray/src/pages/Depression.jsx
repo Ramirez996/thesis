@@ -52,6 +52,13 @@ const Depression = () => {
         >
           Start Test
         </button>
+        <br></br>
+        <button
+          className="history-btn"
+          onClick={() => navigate("/anxiety-history")}
+        >
+          Test History
+        </button>
       </div>
     </div>
   );
