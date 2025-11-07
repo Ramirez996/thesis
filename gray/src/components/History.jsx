@@ -8,7 +8,7 @@ const History = () => {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const location = useLocation();
-  const { type } = location.state || {}; // type = "anxiety", "depression", etc.
+  const { type } = location.state || {}; // e.g. "anxiety", "depression"
 
   useEffect(() => {
     if (!type) return;
@@ -18,7 +18,18 @@ const History = () => {
   const fetchHistory = async (type) => {
     setLoading(true);
 
-    // Map test types to table names
+    // Get currently logged-in user
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+
+    if (userError || !user) {
+      console.error("User not logged in:", userError);
+      setLoading(false);
+      return;
+    }
+
     const tableMap = {
       anxiety: "anxiety_results",
       depression: "depression_results",
@@ -33,9 +44,11 @@ const History = () => {
       return;
     }
 
+    // Fetch only this user's records
     const { data, error } = await supabase
       .from(tableName)
       .select("id, user_name, score, created_at")
+      .eq("user_id", user.id) // filter by current user
       .order("created_at", { ascending: false });
 
     if (error) console.error(`Error fetching ${type} history:`, error);
