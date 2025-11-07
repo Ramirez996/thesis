@@ -6,33 +6,29 @@ import "../pages/anxiety.css";
 const History = () => {
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState(null);
   const navigate = useNavigate();
   const location = useLocation();
   const { type } = location.state || {}; // type = "anxiety", "depression", etc.
 
   useEffect(() => {
-    getUser();
-  }, []);
-
-  useEffect(() => {
-    if (user && type) {
-      fetchHistory(type);
-    }
-  }, [user, type]);
-
-  // ✅ Get current logged-in user
-  const getUser = async () => {
-    const { data, error } = await supabase.auth.getUser();
-    if (error) {
-      console.error("Error fetching user:", error);
-      return;
-    }
-    setUser(data.user);
-  };
+    if (!type) return;
+    fetchHistory(type);
+  }, [type]);
 
   const fetchHistory = async (type) => {
     setLoading(true);
+
+    // Get current logged-in user
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+
+    if (userError || !user) {
+      console.error("No user found:", userError);
+      setLoading(false);
+      return;
+    }
 
     // Map test types to table names
     const tableMap = {
@@ -49,18 +45,15 @@ const History = () => {
       return;
     }
 
-    // ✅ Filter results by logged-in user ID
+    // Fetch only the user's own history
     const { data, error } = await supabase
       .from(tableName)
       .select("id, user_name, score, created_at")
-      .eq("user_id", user.id) // only current user's records
+      .eq("user_id", user.id)
       .order("created_at", { ascending: false });
 
-    if (error) {
-      console.error(`Error fetching ${type} history:`, error);
-    } else {
-      setHistory(data || []);
-    }
+    if (error) console.error(`Error fetching ${type} history:`, error);
+    else setHistory(data || []);
 
     setLoading(false);
   };
