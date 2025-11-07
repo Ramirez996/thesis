@@ -8,15 +8,31 @@ const History = () => {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const location = useLocation();
-  const { type } = location.state || {}; // type = "anxiety", "depression", etc.
+  const { type } = location.state || {}; // type = "anxiety", "depression", "wellbeing", "personality"
 
   useEffect(() => {
-    if (!type) return;
-    fetchHistory(type);
+    if (type) {
+      fetchHistory(type);
+    }
   }, [type]);
 
+  // ✅ Fetch current user's history only
   const fetchHistory = async (type) => {
     setLoading(true);
+
+    // Get the current logged-in user
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError) {
+      console.error("Error getting user:", userError);
+      setLoading(false);
+      return;
+    }
+
+    if (!user) {
+      alert("Please log in to view your test history.");
+      setLoading(false);
+      return;
+    }
 
     // Map test types to table names
     const tableMap = {
@@ -33,17 +49,23 @@ const History = () => {
       return;
     }
 
+    // Fetch data filtered by user_id
     const { data, error } = await supabase
       .from(tableName)
-      .select("id, user_name, score, created_at")
+      .select("id, user_name, score, risk_level, created_at")
+      .eq("user_id", user.id)
       .order("created_at", { ascending: false });
 
-    if (error) console.error(`Error fetching ${type} history:`, error);
-    else setHistory(data || []);
+    if (error) {
+      console.error(`Error fetching ${type} history:`, error);
+    } else {
+      setHistory(data || []);
+    }
 
     setLoading(false);
   };
 
+  // ✅ Title based on test type
   const getTitle = (type) => {
     switch (type) {
       case "anxiety":
@@ -62,6 +84,7 @@ const History = () => {
   return (
     <div className="mental-container">
       <h2>{getTitle(type)}</h2>
+
       <button onClick={() => navigate(-1)} className="back-btn">
         ← Back
       </button>
@@ -76,6 +99,7 @@ const History = () => {
             <tr>
               <th>User Name</th>
               <th>Score</th>
+              <th>Risk Level</th>
               <th>Date</th>
             </tr>
           </thead>
@@ -84,6 +108,7 @@ const History = () => {
               <tr key={record.id}>
                 <td>{record.user_name}</td>
                 <td>{record.score}</td>
+                <td>{record.risk_level || "—"}</td>
                 <td>{new Date(record.created_at).toLocaleString()}</td>
               </tr>
             ))}
