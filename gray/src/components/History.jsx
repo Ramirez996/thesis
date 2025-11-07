@@ -18,18 +18,6 @@ const History = () => {
   const fetchHistory = async (type) => {
     setLoading(true);
 
-    // Get current logged-in user
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser();
-
-    if (userError || !user) {
-      console.error("No user found:", userError);
-      setLoading(false);
-      return;
-    }
-
     // Map test types to table names
     const tableMap = {
       anxiety: "anxiety_results",
@@ -45,11 +33,9 @@ const History = () => {
       return;
     }
 
-    // Fetch only the user's own history
     const { data, error } = await supabase
       .from(tableName)
       .select("id, user_name, score, created_at")
-      .eq("user_id", user.id)
       .order("created_at", { ascending: false });
 
     if (error) console.error(`Error fetching ${type} history:`, error);
