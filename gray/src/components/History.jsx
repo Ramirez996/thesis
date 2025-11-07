@@ -18,7 +18,19 @@ const History = () => {
   const fetchHistory = async (type) => {
     setLoading(true);
 
-    // Map test types to table names
+    // ✅ Get current logged-in user
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+
+    if (userError || !user) {
+      console.error("User not logged in:", userError);
+      setLoading(false);
+      return;
+    }
+
+    // ✅ Map test types to Supabase table names
     const tableMap = {
       anxiety: "anxiety_results",
       depression: "depression_results",
@@ -33,13 +45,18 @@ const History = () => {
       return;
     }
 
+    // ✅ Query only the current user's records
     const { data, error } = await supabase
       .from(tableName)
       .select("id, user_name, score, created_at")
+      .eq("user_id", user.id) // filter by logged-in user ID
       .order("created_at", { ascending: false });
 
-    if (error) console.error(`Error fetching ${type} history:`, error);
-    else setHistory(data || []);
+    if (error) {
+      console.error(`Error fetching ${type} history:`, error);
+    } else {
+      setHistory(data || []);
+    }
 
     setLoading(false);
   };
