@@ -6,83 +6,64 @@ import "../pages/anxiety.css";
 const History = () => {
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState(null);
   const navigate = useNavigate();
   const location = useLocation();
   const { type } = location.state || {}; // type = "anxiety", "depression", etc.
 
   useEffect(() => {
-    const fetchData = async () => {
-      if (!type) return;
+    getUser();
+  }, []);
 
-      setLoading(true);
+  useEffect(() => {
+    if (user && type) {
+      fetchHistory(type);
+    }
+  }, [user, type]);
 
-      // Get logged-in user info
-      const {
-        data: { user },
-        error: userError,
-      } = await supabase.auth.getUser();
+  // ✅ Get current logged-in user
+  const getUser = async () => {
+    const { data, error } = await supabase.auth.getUser();
+    if (error) {
+      console.error("Error fetching user:", error);
+      return;
+    }
+    setUser(data.user);
+  };
 
-      if (userError || !user) {
-        console.error("User not logged in:", userError);
-        setLoading(false);
-        return;
-      }
+  const fetchHistory = async (type) => {
+    setLoading(true);
 
-      console.log("🔍 Current user info:", user);
-
-      // Map test types to table names
-      const tableMap = {
-        anxiety: "anxiety_results",
-        depression: "depression_results",
-        wellbeing: "wellbeing_results",
-        personality: "personality_results",
-      };
-
-      const tableName = tableMap[type];
-      if (!tableName) {
-        console.error("Invalid test type:", type);
-        setLoading(false);
-        return;
-      }
-
-      // Try multiple matching fields (user_id, user_email, user_uid)
-      const possibleFilters = [
-        { field: "user_id", value: user.id },
-        { field: "user_email", value: user.email },
-        { field: "user_uid", value: user.id || user.uid },
-      ];
-
-      let data = null;
-      let error = null;
-
-      for (const { field, value } of possibleFilters) {
-        const { data: result, error: fetchError } = await supabase
-          .from(tableName)
-          .select("id, user_id, user_name, score, created_at")
-          .eq(field, value)
-          .order("created_at", { ascending: false });
-
-        console.log(`🧩 Trying filter ${field}=${value}:`, result);
-
-        if (result && result.length > 0) {
-          data = result;
-          break;
-        }
-        error = fetchError;
-      }
-
-      if (error) {
-        console.error(`Error fetching ${type} history:`, error);
-        setHistory([]);
-      } else {
-        setHistory(data || []);
-      }
-
-      setLoading(false);
+    // Map test types to table names
+    const tableMap = {
+      anxiety: "anxiety_results",
+      depression: "depression_results",
+      wellbeing: "wellbeing_results",
+      personality: "personality_results",
     };
 
-    fetchData();
-  }, [type]);
+    const tableName = tableMap[type];
+    if (!tableName) {
+      console.error("Invalid test type:", type);
+      setLoading(false);
+      return;
+    }
+
+    // ✅ Filter results by logged-in user ID
+    const { data, error } = await supabase
+      .from(tableName)
+      .select("id, user_name, score, created_at")
+      .eq("user_id", user.id) // only current user's records
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error(`Error fetching ${type} history:`, error);
+    } else {
+      setHistory(data || []);
+    }
+
+    setLoading(false);
+  };
 
   const getTitle = (type) => {
     switch (type) {
