@@ -16,7 +16,7 @@ const History = () => {
 
       setLoading(true);
 
-      // Get the current logged-in user
+      // Get logged-in user info
       const {
         data: { user },
         error: userError,
@@ -28,7 +28,9 @@ const History = () => {
         return;
       }
 
-      // Map test types to their Supabase table names
+      console.log("🔍 Current user info:", user);
+
+      // Map test types to table names
       const tableMap = {
         anxiety: "anxiety_results",
         depression: "depression_results",
@@ -43,12 +45,31 @@ const History = () => {
         return;
       }
 
-      // Fetch only records that belong to the current user
-      const { data, error } = await supabase
-        .from(tableName)
-        .select("id, user_id, user_name, score, created_at")
-        .eq("user_id", user.id) // ✅ filter by user_id
-        .order("created_at", { ascending: false });
+      // Try multiple matching fields (user_id, user_email, user_uid)
+      const possibleFilters = [
+        { field: "user_id", value: user.id },
+        { field: "user_email", value: user.email },
+        { field: "user_uid", value: user.id || user.uid },
+      ];
+
+      let data = null;
+      let error = null;
+
+      for (const { field, value } of possibleFilters) {
+        const { data: result, error: fetchError } = await supabase
+          .from(tableName)
+          .select("id, user_id, user_name, score, created_at")
+          .eq(field, value)
+          .order("created_at", { ascending: false });
+
+        console.log(`🧩 Trying filter ${field}=${value}:`, result);
+
+        if (result && result.length > 0) {
+          data = result;
+          break;
+        }
+        error = fetchError;
+      }
 
       if (error) {
         console.error(`Error fetching ${type} history:`, error);
