@@ -8,7 +8,7 @@ const History = () => {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const location = useLocation();
-  const { type } = location.state || {}; // e.g., "anxiety", "depression", etc.
+  const { type } = location.state || {}; // type = "anxiety", "depression", etc.
 
   useEffect(() => {
     if (!type) return;
@@ -18,22 +18,7 @@ const History = () => {
   const fetchHistory = async (type) => {
     setLoading(true);
 
-    // ✅ Get logged-in user securely
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser();
-
-    if (userError || !user) {
-      console.error("No logged-in user found:", userError);
-      setHistory([]);
-      setLoading(false);
-      return;
-    }
-
-    const userId = user.id;
-
-    // ✅ Map test types to their corresponding table names
+    // Map test types to table names
     const tableMap = {
       anxiety: "anxiety_results",
       depression: "depression_results",
@@ -48,19 +33,13 @@ const History = () => {
       return;
     }
 
-    // ✅ Fetch history only for the logged-in user
     const { data, error } = await supabase
       .from(tableName)
       .select("id, user_name, score, created_at")
-      .eq("user_id", userId) // Only this user’s data
       .order("created_at", { ascending: false });
 
-    if (error) {
-      console.error(`Error fetching ${type} history:`, error);
-      setHistory([]);
-    } else {
-      setHistory(data || []);
-    }
+    if (error) console.error(`Error fetching ${type} history:`, error);
+    else setHistory(data || []);
 
     setLoading(false);
   };
@@ -90,7 +69,7 @@ const History = () => {
       {loading ? (
         <p>Loading your {type} history...</p>
       ) : history.length === 0 ? (
-        <p>No previous {type} test results found for your account.</p>
+        <p>No previous {type} test results found.</p>
       ) : (
         <table className="history-table">
           <thead>
