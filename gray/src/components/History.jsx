@@ -6,32 +6,14 @@ import "../pages/anxiety.css";
 const History = () => {
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState(null);
   const navigate = useNavigate();
   const location = useLocation();
   const { type } = location.state || {}; // type = "anxiety", "depression", etc.
 
   useEffect(() => {
-    getCurrentUser();
-  }, []);
-
-  useEffect(() => {
-    if (user && type) fetchHistory(type);
-  }, [user, type]);
-
-  const getCurrentUser = async () => {
-    const {
-      data: { user },
-      error,
-    } = await supabase.auth.getUser();
-
-    if (error) {
-      console.error("Error getting user:", error);
-      return;
-    }
-
-    setUser(user);
-  };
+    if (!type) return;
+    fetchHistory(type);
+  }, [type]);
 
   const fetchHistory = async (type) => {
     setLoading(true);
@@ -54,7 +36,6 @@ const History = () => {
     const { data, error } = await supabase
       .from(tableName)
       .select("id, user_name, score, created_at")
-      .eq("user_id", user.id) // ✅ Filter by logged-in user
       .order("created_at", { ascending: false });
 
     if (error) console.error(`Error fetching ${type} history:`, error);
@@ -88,7 +69,7 @@ const History = () => {
       {loading ? (
         <p>Loading your {type} history...</p>
       ) : history.length === 0 ? (
-        <p>No previous {type} test results found for your account.</p>
+        <p>No previous {type} test results found.</p>
       ) : (
         <table className="history-table">
           <thead>
@@ -101,7 +82,6 @@ const History = () => {
           <tbody>
             {history.map((record) => (
               <tr key={record.id}>
-                <td>{record.user_id}</td>
                 <td>{record.user_name}</td>
                 <td>{record.score}</td>
                 <td>{new Date(record.created_at).toLocaleString()}</td>
