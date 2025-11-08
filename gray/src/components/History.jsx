@@ -101,7 +101,7 @@ const History = () => {
           <tbody>
             {history.map((record) => (
               <tr key={record.id}>
-             
+                <td>{record.user_id}</td>
                 <td>{record.user_name}</td>
                 <td>{record.score}</td>
                 <td>{new Date(record.created_at).toLocaleString()}</td>
