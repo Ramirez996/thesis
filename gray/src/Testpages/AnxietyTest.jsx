@@ -2,6 +2,8 @@ import React, { useState, useRef } from "react";
 import "../testDesign/EatingTest.css";
 import Chatbot from "../pages/Chatbot";
 import { getApiUrl } from "../config/api";
+import { supabase } from "../supabaseClient"; // ✅ Add this
+import { getAuth } from "firebase/auth"; // ✅ Add this
 
 const questions = [
   { id: 1, text: "Feeling nervous, anxious, or on edge?", options: ["Not at all", "Several days", "More than half the days", "Nearly every day"] },
@@ -42,7 +44,7 @@ const AnxietyTest = () => {
       return;
     }
 
-    setIsLoading(true); // ✅ Start loading
+    setIsLoading(true);
 
     const features = questions.map((_, i) => optionValues[answers[i]]);
     const totalScore = features.reduce((sum, val) => sum + val, 0);
@@ -92,17 +94,39 @@ const AnxietyTest = () => {
       if (anxietyResult.result.startsWith("Severe Anxiety")) {
         setIsChatbotVisible(true);
       }
+
+      // ✅ NEW: Save result to Supabase
+      const auth = getAuth();
+      const user = auth.currentUser;
+
+      if (user) {
+        const { error } = await supabase.from("anxiety_results").insert([
+          {
+            user_id: user.uid, // ✅ logged-in user's unique ID
+            user_name: user.displayName || "Anonymous",
+            score: totalScore,
+          },
+        ]);
+
+        if (error) {
+          console.error("Error saving to Supabase:", error);
+        } else {
+          console.log("✅ Anxiety test result saved successfully!");
+        }
+      } else {
+        console.warn("⚠️ No logged-in user found. Result not saved to Supabase.");
+      }
+
     } catch (error) {
       console.error("Error fetching hybrid risk:", error);
       alert("Failed to compute risk. Please try again.");
     } finally {
-      setIsLoading(false); // ✅ Stop loading
+      setIsLoading(false);
     }
   };
 
   return (
     <div className="test-container">
-      {/* === Loading Overlay === */}
       {isLoading && (
         <div className="loading-overlay">
           <div className="spinner"></div>
@@ -125,7 +149,7 @@ const AnxietyTest = () => {
                     key={option}
                     onClick={() => handleOptionSelect(i, option)}
                     className={`option-button ${answers[i] === option ? "selected" : ""}`}
-                    disabled={isLoading} // ✅ Disable buttons while loading
+                    disabled={isLoading}
                   >
                     {option}
                   </button>
@@ -134,72 +158,9 @@ const AnxietyTest = () => {
             </div>
           ))}
 
-          <button
-            onClick={handleSubmit}
-            className="submit-button"
-            disabled={isLoading}
-          >
+          <button onClick={handleSubmit} className="submit-button" disabled={isLoading}>
             {isLoading ? "Submitting..." : "SUBMIT"}
           </button>
-
-          {result && (
-            <div className="chatbot-container fade-in">
-              <div className="chatbot-message bot">
-                <p><strong>AI Counselor:</strong> Thank you for completing the Anxiety (GAD-7) test.</p>
-              </div>
-              <div className="chatbot-message bot">
-                <p>
-                  Based on your responses, your <strong>risk level</strong> appears to be{" "}
-                  <strong>{result.is_high_risk ? "High" : "Low"}</strong>.
-                </p>
-              </div>
-              <div className="chatbot-message bot">
-                <p>
-                  Your <strong>Logistic Regression Score</strong> is {result.lr_score}, and your{" "}
-                  <strong>BERT Anomaly Score</strong> is {result.bert_anomaly_score}.
-                </p>
-              </div>
-              <div className="chatbot-message bot">
-                <p>
-                  Overall, your <strong>final hybrid risk</strong> is:{" "}
-                  <strong>{result.final_risk}</strong>.
-                </p>
-              </div>
-              <div className="chatbot-message bot">
-                {result.is_high_risk ? (
-                  <p>
-                    It seems you may be experiencing symptoms of anxiety. Consider talking to
-                    a mental health professional or reaching out to supportive friends and family.
-                  </p>
-                ) : (
-                  <p>
-                    You seem to be doing well emotionally. Continue practicing healthy habits and
-                    taking care of your mental well-being.
-                  </p>
-                )}
-              </div>
-            </div>
-          )}
-
-          <div className="test-source">
-            <h2>Source:</h2>
-            <p>
-              Developed by : Spitzer RL, Kroenke K, Williams JB, Löwe B. 
-              A brief measure for assessing generalized anxiety disorder: the GAD-7. 
-              Arch Intern Med. 2006;166(10):1092-1097.
-            </p>
-            <a
-              href="https://www.mdcalc.com/calc/1725/gad-7-anxiety-scale"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              https://www.mdcalc.com/calc/1725/gad-7-anxiety-scale
-            </a>
-            <p>
-              <strong>Please note:</strong> Online screening tools are not diagnostic instruments. 
-              Share your results with a healthcare provider for proper evaluation.
-            </p>
-          </div>
         </div>
       ) : (
         <div className="result-section">
