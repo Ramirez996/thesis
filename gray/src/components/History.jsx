@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { supabase } from "../supabaseClient";
 import { useLocation, useNavigate } from "react-router-dom";
-import { getAuth } from "firebase/auth"; // ✅ Import Firebase Auth
 import "../pages/anxiety.css";
 
 const History = () => {
@@ -19,16 +18,6 @@ const History = () => {
   const fetchHistory = async (type) => {
     setLoading(true);
 
-    // ✅ Get the currently logged-in user
-    const auth = getAuth();
-    const user = auth.currentUser;
-
-    if (!user) {
-      console.error("No user is logged in.");
-      setLoading(false);
-      return;
-    }
-
     // Map test types to table names
     const tableMap = {
       anxiety: "anxiety_results",
@@ -44,18 +33,13 @@ const History = () => {
       return;
     }
 
-    // ✅ Fetch only the logged-in user’s records
     const { data, error } = await supabase
       .from(tableName)
       .select("id, user_name, score, created_at")
-      .eq("user_id", user.uid) // ✅ Filter by logged-in user ID
       .order("created_at", { ascending: false });
 
-    if (error) {
-      console.error(`Error fetching ${type} history:`, error);
-    } else {
-      setHistory(data || []);
-    }
+    if (error) console.error(`Error fetching ${type} history:`, error);
+    else setHistory(data || []);
 
     setLoading(false);
   };
