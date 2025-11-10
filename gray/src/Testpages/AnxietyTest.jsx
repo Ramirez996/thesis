@@ -2,6 +2,7 @@ import React, { useState, useRef } from "react";
 import "../testDesign/EatingTest.css";
 import Chatbot from "../pages/Chatbot";
 import { getApiUrl } from "../config/api";
+import { supabase } from "../supabaseClient"; // ✅ Import Supabase
 
 const questions = [
   { id: 1, text: "Feeling nervous, anxious, or on edge?", options: ["Not at all", "Several days", "More than half the days", "Nearly every day"] },
@@ -42,13 +43,40 @@ const AnxietyTest = () => {
       return;
     }
 
-    setIsLoading(true); // ✅ Start loading
+    setIsLoading(true);
 
     const features = questions.map((_, i) => optionValues[answers[i]]);
     const totalScore = features.reduce((sum, val) => sum + val, 0);
     setScore(totalScore);
 
+    let anxietyResult;
+
+    if (totalScore >= 15) {
+      anxietyResult = {
+        result: "Severe Anxiety – Consider professional help.",
+        description: "Your score suggests severe anxiety. Please consult a professional."
+      };
+    } else if (totalScore >= 10) {
+      anxietyResult = {
+        result: "Moderate Anxiety – Keep monitoring.",
+        description: "Your score suggests moderate anxiety."
+      };
+    } else if (totalScore >= 5) {
+      anxietyResult = {
+        result: "Mild Anxiety – Be mindful of your well-being.",
+        description: "Your score suggests mild anxiety."
+      };
+    } else {
+      anxietyResult = {
+        result: "Minimal Anxiety – Keep taking care of yourself!",
+        description: "Your score indicates minimal anxiety."
+      };
+    }
+
+    setResult(anxietyResult);
+
     try {
+      // ✅ Call Flask backend for hybrid risk
       const response = await fetch(getApiUrl("GAD7_RISK"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -62,47 +90,39 @@ const AnxietyTest = () => {
       const data = await response.json();
       setHybridRisk(data);
 
-      let anxietyResult;
+      // ✅ Insert results into Supabase
+      const { error } = await supabase.from("anxiety_results").insert([
+        {
+          user_name: "Anonymous",
+          score: totalScore,
+          result_text: anxietyResult.result,
+          description: anxietyResult.description,
+          lr_score: data.lr_score,
+          bert_anomaly_score: data.bert_anomaly_score,
+          final_risk: data.final_risk,
+          is_high_risk: data.is_high_risk,
+          answers_json: JSON.stringify(answers)
+        }
+      ]);
 
-      if (totalScore >= 15) {
-        anxietyResult = {
-          result: "Severe Anxiety – Consider professional help.",
-          description: "Your score suggests severe anxiety. Please consult a professional."
-        };
-      } else if (totalScore >= 10) {
-        anxietyResult = {
-          result: "Moderate Anxiety – Keep monitoring.",
-          description: "Your score suggests moderate anxiety."
-        };
-      } else if (totalScore >= 5) {
-        anxietyResult = {
-          result: "Mild Anxiety – Be mindful of your well-being.",
-          description: "Your score suggests mild anxiety."
-        };
-      } else {
-        anxietyResult = {
-          result: "Minimal Anxiety – Keep taking care of yourself!",
-          description: "Your score indicates minimal anxiety."
-        };
-      }
-
-      setResult(anxietyResult);
-      setShowResult(true);
+      if (error) throw error;
+      console.log("✅ Anxiety test results saved to Supabase!");
 
       if (anxietyResult.result.startsWith("Severe Anxiety")) {
         setIsChatbotVisible(true);
       }
+
     } catch (error) {
-      console.error("Error fetching hybrid risk:", error);
-      alert("Failed to compute risk. Please try again.");
+      console.error("Error submitting test:", error);
+      alert("Failed to save test results. Please try again.");
     } finally {
-      setIsLoading(false); // ✅ Stop loading
+      setIsLoading(false);
+      setShowResult(true);
     }
   };
 
   return (
     <div className="test-container">
-      {/* === Loading Overlay === */}
       {isLoading && (
         <div className="loading-overlay">
           <div className="spinner"></div>
@@ -116,16 +136,14 @@ const AnxietyTest = () => {
         <div className="question-section">
           {questions.map((q, i) => (
             <div key={q.id} className="question-item">
-              <p>
-                {i + 1}. {q.text}
-              </p>
+              <p>{i + 1}. {q.text}</p>
               <div className="button-options">
                 {q.options.map((option) => (
                   <button
                     key={option}
                     onClick={() => handleOptionSelect(i, option)}
                     className={`option-button ${answers[i] === option ? "selected" : ""}`}
-                    disabled={isLoading} // ✅ Disable buttons while loading
+                    disabled={isLoading}
                   >
                     {option}
                   </button>
@@ -141,75 +159,12 @@ const AnxietyTest = () => {
           >
             {isLoading ? "Submitting..." : "SUBMIT"}
           </button>
-
-          {result && (
-            <div className="chatbot-container fade-in">
-              <div className="chatbot-message bot">
-                <p><strong>AI Counselor:</strong> Thank you for completing the Anxiety (GAD-7) test.</p>
-              </div>
-              <div className="chatbot-message bot">
-                <p>
-                  Based on your responses, your <strong>risk level</strong> appears to be{" "}
-                  <strong>{result.is_high_risk ? "High" : "Low"}</strong>.
-                </p>
-              </div>
-              <div className="chatbot-message bot">
-                <p>
-                  Your <strong>Logistic Regression Score</strong> is {result.lr_score}, and your{" "}
-                  <strong>BERT Anomaly Score</strong> is {result.bert_anomaly_score}.
-                </p>
-              </div>
-              <div className="chatbot-message bot">
-                <p>
-                  Overall, your <strong>final hybrid risk</strong> is:{" "}
-                  <strong>{result.final_risk}</strong>.
-                </p>
-              </div>
-              <div className="chatbot-message bot">
-                {result.is_high_risk ? (
-                  <p>
-                    It seems you may be experiencing symptoms of anxiety. Consider talking to
-                    a mental health professional or reaching out to supportive friends and family.
-                  </p>
-                ) : (
-                  <p>
-                    You seem to be doing well emotionally. Continue practicing healthy habits and
-                    taking care of your mental well-being.
-                  </p>
-                )}
-              </div>
-            </div>
-          )}
-
-          <div className="test-source">
-            <h2>Source:</h2>
-            <p>
-              Developed by : Spitzer RL, Kroenke K, Williams JB, Löwe B. 
-              A brief measure for assessing generalized anxiety disorder: the GAD-7. 
-              Arch Intern Med. 2006;166(10):1092-1097.
-            </p>
-            <a
-              href="https://www.mdcalc.com/calc/1725/gad-7-anxiety-scale"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              https://www.mdcalc.com/calc/1725/gad-7-anxiety-scale
-            </a>
-            <p>
-              <strong>Please note:</strong> Online screening tools are not diagnostic instruments. 
-              Share your results with a healthcare provider for proper evaluation.
-            </p>
-          </div>
         </div>
       ) : (
         <div className="result-section">
           <h2>Your Result:</h2>
-          <p>
-            <strong>Score:</strong> {score} / {questions.length * 3}
-          </p>
-          <p>
-            <strong>{result.result}</strong>
-          </p>
+          <p><strong>Score:</strong> {score} / {questions.length * 3}</p>
+          <p><strong>{result.result}</strong></p>
           <p>{result.description}</p>
 
           {hybridRisk && (
@@ -226,58 +181,14 @@ const AnxietyTest = () => {
           <ul>
             {questions.map((q, i) => (
               <li key={q.id}>
-                <strong>
-                  {i + 1}. {q.text}
-                </strong>
+                <strong>{i + 1}. {q.text}</strong>
                 <br />
-                <span style={{ color: "#048bb8" }}>
-                  Your answer: {answers[i]}
-                </span>
+                <span style={{ color: "#048bb8" }}>Your answer: {answers[i]}</span>
               </li>
             ))}
           </ul>
 
-          <div className="gad7-guidelines">
-  <h3>Guide for Interpreting GAD-7 Scores</h3>
-  <p>
-    The GAD-7 is calculated by assigning scores of <strong>0, 1, 2, and 3</strong> to the response
-    categories of “Not at all,” “Several days,” “More than half the days,” and “Nearly every day,” respectively.
-    The total score ranges from <strong>0 to 21</strong>.
-  </p>
-  <table className="gad7-table">
-    <thead>
-      <tr>
-        <th>Score</th>
-        <th>Anxiety Severity</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr>
-        <td>0 – 4</td>
-        <td>Minimal Anxiety</td>
-      </tr>
-      <tr>
-        <td>5 – 9</td>
-        <td>Mild Anxiety</td>
-      </tr>
-      <tr>
-        <td>10 – 14</td>
-        <td>Moderate Anxiety</td>
-      </tr>
-      <tr>
-        <td>15 – 21</td>
-        <td>Severe Anxiety</td>
-      </tr>
-    </tbody>
-  </table>
-</div>
-
-
-          <button
-            onClick={toggleChatbot}
-            ref={chatbotButtonRef}
-            className="footer-button"
-          >
+          <button onClick={() => setIsChatbotVisible((prev) => !prev)} className="footer-button">
             {isChatbotVisible ? "Hide Chatbot" : "Open Chatbot"}
           </button>
 
