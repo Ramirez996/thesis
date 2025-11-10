@@ -2,7 +2,7 @@ import React, { useState, useRef } from "react";
 import "../testDesign/EatingTest.css";
 import Chatbot from "../pages/Chatbot";
 import { getApiUrl } from "../config/api";
-import { supabase } from "../supabaseClient"; // ✅ Import Supabase
+import { supabase } from "../supabaseClient"; // ✅ added import
 
 const questions = [
   { id: 1, text: "Feeling nervous, anxious, or on edge?", options: ["Not at all", "Several days", "More than half the days", "Nearly every day"] },
@@ -11,14 +11,14 @@ const questions = [
   { id: 4, text: "Trouble relaxing?", options: ["Not at all", "Several days", "More than half the days", "Nearly every day"] },
   { id: 5, text: "Being so restless that it is hard to sit still?", options: ["Not at all", "Several days", "More than half the days", "Nearly every day"] },
   { id: 6, text: "Becoming easily annoyed or irritable?", options: ["Not at all", "Several days", "More than half the days", "Nearly every day"] },
-  { id: 7, text: "Feeling afraid as if something awful might happen?", options: ["Not at all", "Several days", "More than half the days", "Nearly every day"] },
+  { id: 7, text: "Feeling afraid as if something awful might happen?", options: ["Not at all", "Several days", "More than half the days", "Nearly every day"] }
 ];
 
 const optionValues = {
   "Not at all": 0,
   "Several days": 1,
   "More than half the days": 2,
-  "Nearly every day": 3,
+  "Nearly every day": 3
 };
 
 const AnxietyTest = () => {
@@ -37,29 +37,53 @@ const AnxietyTest = () => {
     setAnswers((prev) => ({ ...prev, [index]: option }));
   };
 
+  // ✅ Function to save result to Supabase with user_id
+  const saveAnxietyResult = async (totalScore, riskLevel) => {
+    try {
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+
+      if (userError || !user) {
+        console.error("No logged-in user found:", userError);
+        return;
+      }
+
+      const { error } = await supabase.from("anxiety_results").insert([
+        {
+          user_id: user.id,
+          user_name: user.user_metadata?.full_name || user.email || "Anonymous",
+          score: totalScore,
+          risk_level: riskLevel,
+        },
+      ]);
+
+      if (error) console.error("Error saving anxiety result:", error);
+      else console.log("✅ Anxiety result saved successfully!");
+    } catch (err) {
+      console.error("Unexpected error saving result:", err);
+    }
+  };
+
   const handleSubmit = async () => {
     if (Object.keys(answers).length < questions.length) {
       alert("Please answer all the questions before submitting.");
       return;
     }
 
-    setIsLoading(true);
+    setIsLoading(true); // ✅ Start loading
 
     const features = questions.map((_, i) => optionValues[answers[i]]);
     const totalScore = features.reduce((sum, val) => sum + val, 0);
     setScore(totalScore);
 
     try {
-      // ✅ Get the currently logged-in user from Supabase
-      const { data: { user } } = await supabase.auth.getUser();
-      const user_name = user?.user_metadata?.full_name || user?.email || "Anonymous";
-
-      // ✅ Send data to Flask API
       const response = await fetch(getApiUrl("GAD7_RISK"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          user_name,
+          user_name: "Anonymous",
           answers: features,
           text: "User completed the anxiety test",
         }),
@@ -68,43 +92,40 @@ const AnxietyTest = () => {
       const data = await response.json();
       setHybridRisk(data);
 
-      // ✅ Save result to Supabase database
-      const { error } = await supabase.from("anxiety_results").insert([
-        {
-          user_id: user?.id || null,
-          user_name,
-          score: totalScore,
-          risk_level: data.final_risk || "Unknown",
-        },
-      ]);
-
-      if (error) console.error("Error saving result:", error);
-
       let anxietyResult;
+      let riskLevel = "";
+
       if (totalScore >= 15) {
         anxietyResult = {
           result: "Severe Anxiety – Consider professional help.",
           description: "Your score suggests severe anxiety. Please consult a professional.",
         };
+        riskLevel = "Severe";
       } else if (totalScore >= 10) {
         anxietyResult = {
           result: "Moderate Anxiety – Keep monitoring.",
           description: "Your score suggests moderate anxiety.",
         };
+        riskLevel = "Moderate";
       } else if (totalScore >= 5) {
         anxietyResult = {
           result: "Mild Anxiety – Be mindful of your well-being.",
           description: "Your score suggests mild anxiety.",
         };
+        riskLevel = "Mild";
       } else {
         anxietyResult = {
           result: "Minimal Anxiety – Keep taking care of yourself!",
           description: "Your score indicates minimal anxiety.",
         };
+        riskLevel = "Minimal";
       }
 
       setResult(anxietyResult);
       setShowResult(true);
+
+      // ✅ Save result to Supabase
+      await saveAnxietyResult(totalScore, riskLevel);
 
       if (anxietyResult.result.startsWith("Severe Anxiety")) {
         setIsChatbotVisible(true);
@@ -113,12 +134,13 @@ const AnxietyTest = () => {
       console.error("Error fetching hybrid risk:", error);
       alert("Failed to compute risk. Please try again.");
     } finally {
-      setIsLoading(false);
+      setIsLoading(false); // ✅ Stop loading
     }
   };
 
   return (
     <div className="test-container">
+      {/* === Loading Overlay === */}
       {isLoading && (
         <div className="loading-overlay">
           <div className="spinner"></div>
@@ -153,12 +175,36 @@ const AnxietyTest = () => {
           <button onClick={handleSubmit} className="submit-button" disabled={isLoading}>
             {isLoading ? "Submitting..." : "SUBMIT"}
           </button>
+
+          <div className="test-source">
+            <h2>Source:</h2>
+            <p>
+              Developed by : Spitzer RL, Kroenke K, Williams JB, Löwe B.
+              A brief measure for assessing generalized anxiety disorder: the GAD-7.
+              Arch Intern Med. 2006;166(10):1092-1097.
+            </p>
+            <a
+              href="https://www.mdcalc.com/calc/1725/gad-7-anxiety-scale"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              https://www.mdcalc.com/calc/1725/gad-7-anxiety-scale
+            </a>
+            <p>
+              <strong>Please note:</strong> Online screening tools are not diagnostic instruments.
+              Share your results with a healthcare provider for proper evaluation.
+            </p>
+          </div>
         </div>
       ) : (
         <div className="result-section">
           <h2>Your Result:</h2>
-          <p><strong>Score:</strong> {score} / {questions.length * 3}</p>
-          <p><strong>{result.result}</strong></p>
+          <p>
+            <strong>Score:</strong> {score} / {questions.length * 3}
+          </p>
+          <p>
+            <strong>{result.result}</strong>
+          </p>
           <p>{result.description}</p>
 
           {hybridRisk && (
@@ -175,8 +221,13 @@ const AnxietyTest = () => {
           <ul>
             {questions.map((q, i) => (
               <li key={q.id}>
-                <strong>{i + 1}. {q.text}</strong><br />
-                <span style={{ color: "#048bb8" }}>Your answer: {answers[i]}</span>
+                <strong>
+                  {i + 1}. {q.text}
+                </strong>
+                <br />
+                <span style={{ color: "#048bb8" }}>
+                  Your answer: {answers[i]}
+                </span>
               </li>
             ))}
           </ul>
