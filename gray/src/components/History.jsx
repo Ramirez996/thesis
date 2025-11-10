@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import { supabase } from "../supabaseClient";
-import { getAuth } from "firebase/auth"; // ✅ Import Firebase Auth
 import { useLocation, useNavigate } from "react-router-dom";
 import "../pages/anxiety.css";
 
@@ -19,7 +18,7 @@ const History = () => {
   const fetchHistory = async (type) => {
     setLoading(true);
 
-    // Map test types to Supabase tables
+    // Map test types to table names
     const tableMap = {
       anxiety: "anxiety_results",
       depression: "depression_results",
@@ -34,29 +33,13 @@ const History = () => {
       return;
     }
 
-    // ✅ Get current Firebase user
-    const auth = getAuth();
-    const user = auth.currentUser;
-
-    if (!user) {
-      alert("Please log in to view your test history.");
-      setLoading(false);
-      navigate("/login");
-      return;
-    }
-
-    // ✅ Fetch only records belonging to the logged-in user
     const { data, error } = await supabase
       .from(tableName)
-      .select("id, user_name, score, result_text, created_at")
-      .eq("user_id", user.uid)
+      .select("id, user_name, score, created_at")
       .order("created_at", { ascending: false });
 
-    if (error) {
-      console.error(`Error fetching ${type} history:`, error);
-    } else {
-      setHistory(data || []);
-    }
+    if (error) console.error(`Error fetching ${type} history:`, error);
+    else setHistory(data || []);
 
     setLoading(false);
   };
@@ -93,7 +76,6 @@ const History = () => {
             <tr>
               <th>User Name</th>
               <th>Score</th>
-              <th>Result</th>
               <th>Date</th>
             </tr>
           </thead>
@@ -102,7 +84,6 @@ const History = () => {
               <tr key={record.id}>
                 <td>{record.user_name}</td>
                 <td>{record.score}</td>
-                <td>{record.result_text}</td>
                 <td>{new Date(record.created_at).toLocaleString()}</td>
               </tr>
             ))}
