@@ -2,6 +2,7 @@ import React, { useState, useRef } from "react";
 import "../testDesign/EatingTest.css";
 import Chatbot from "../pages/Chatbot";
 import { getApiUrl } from "../config/api";
+import { supabase } from "../supabaseClient"; // ✅ Import Supabase
 
 const questions = [
   { id: 1, text: "Feeling nervous, anxious, or on edge?", options: ["Not at all", "Several days", "More than half the days", "Nearly every day"] },
@@ -10,46 +11,15 @@ const questions = [
   { id: 4, text: "Trouble relaxing?", options: ["Not at all", "Several days", "More than half the days", "Nearly every day"] },
   { id: 5, text: "Being so restless that it is hard to sit still?", options: ["Not at all", "Several days", "More than half the days", "Nearly every day"] },
   { id: 6, text: "Becoming easily annoyed or irritable?", options: ["Not at all", "Several days", "More than half the days", "Nearly every day"] },
-  { id: 7, text: "Feeling afraid as if something awful might happen?", options: ["Not at all", "Several days", "More than half the days", "Nearly every day"] }
+  { id: 7, text: "Feeling afraid as if something awful might happen?", options: ["Not at all", "Several days", "More than half the days", "Nearly every day"] },
 ];
 
 const optionValues = {
   "Not at all": 0,
   "Several days": 1,
   "More than half the days": 2,
-  "Nearly every day": 3
+  "Nearly every day": 3,
 };
-
-const getAnxietyResult = (totalScore) => {
-  let result;
-  if (totalScore >= 15) {
-    result = {
-      result: "Severe Anxiety – Consider professional help.",
-      description: "Your score suggests severe anxiety. Please consult a professional.",
-      is_high_risk: true,
-    };
-  } else if (totalScore >= 10) {
-    result = {
-      result: "Moderate Anxiety – Keep monitoring.",
-      description: "Your score suggests moderate anxiety.",
-      is_high_risk: false,
-    };
-  } else if (totalScore >= 5) {
-    result = {
-      result: "Mild Anxiety – Be mindful of your well-being.",
-      description: "Your score suggests mild anxiety.",
-      is_high_risk: false,
-    };
-  } else {
-    result = {
-      result: "Minimal Anxiety – Keep taking care of yourself!",
-      description: "Your score indicates minimal anxiety.",
-      is_high_risk: false,
-    };
-  }
-  return result;
-};
-
 
 const AnxietyTest = () => {
   const [answers, setAnswers] = useState({});
@@ -79,45 +49,76 @@ const AnxietyTest = () => {
     const totalScore = features.reduce((sum, val) => sum + val, 0);
     setScore(totalScore);
 
-    const localResult = getAnxietyResult(totalScore);
-
     try {
+      // ✅ Get the currently logged-in user from Supabase
+      const { data: { user } } = await supabase.auth.getUser();
+      const user_name = user?.user_metadata?.full_name || user?.email || "Anonymous";
+
+      // ✅ Send data to Flask API
       const response = await fetch(getApiUrl("GAD7_RISK"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          user_name: "Anonymous",
+          user_name,
           answers: features,
-          score: totalScore,
-          result_text: localResult.result,
-          text: "User completed the anxiety test"
-        })
+          text: "User completed the anxiety test",
+        }),
       });
 
       const data = await response.json();
       setHybridRisk(data);
-      setResult(localResult);
 
-      if (data.is_high_risk) {
+      // ✅ Save result to Supabase database
+      const { error } = await supabase.from("anxiety_results").insert([
+        {
+          user_id: user?.id || null,
+          user_name,
+          score: totalScore,
+          risk_level: data.final_risk || "Unknown",
+        },
+      ]);
+
+      if (error) console.error("Error saving result:", error);
+
+      let anxietyResult;
+      if (totalScore >= 15) {
+        anxietyResult = {
+          result: "Severe Anxiety – Consider professional help.",
+          description: "Your score suggests severe anxiety. Please consult a professional.",
+        };
+      } else if (totalScore >= 10) {
+        anxietyResult = {
+          result: "Moderate Anxiety – Keep monitoring.",
+          description: "Your score suggests moderate anxiety.",
+        };
+      } else if (totalScore >= 5) {
+        anxietyResult = {
+          result: "Mild Anxiety – Be mindful of your well-being.",
+          description: "Your score suggests mild anxiety.",
+        };
+      } else {
+        anxietyResult = {
+          result: "Minimal Anxiety – Keep taking care of yourself!",
+          description: "Your score indicates minimal anxiety.",
+        };
+      }
+
+      setResult(anxietyResult);
+      setShowResult(true);
+
+      if (anxietyResult.result.startsWith("Severe Anxiety")) {
         setIsChatbotVisible(true);
       }
-      
     } catch (error) {
       console.error("Error fetching hybrid risk:", error);
-      setResult(localResult);
-      
-      if (localResult.is_high_risk) {
-          setIsChatbotVisible(true);
-      }
+      alert("Failed to compute risk. Please try again.");
     } finally {
-      setShowResult(true);
       setIsLoading(false);
     }
   };
 
   return (
     <div className="test-container">
-      {/* === Loading Overlay === */}
       {isLoading && (
         <div className="loading-overlay">
           <div className="spinner"></div>
@@ -129,7 +130,6 @@ const AnxietyTest = () => {
 
       {!showResult ? (
         <div className="question-section">
-          {/* ... (Question display logic) ... */}
           {questions.map((q, i) => (
             <div key={q.id} className="question-item">
               <p>
@@ -150,85 +150,17 @@ const AnxietyTest = () => {
             </div>
           ))}
 
-          <button
-            onClick={handleSubmit}
-            className="submit-button"
-            disabled={isLoading}
-          >
+          <button onClick={handleSubmit} className="submit-button" disabled={isLoading}>
             {isLoading ? "Submitting..." : "SUBMIT"}
           </button>
-          
-          <div className="test-source">
-            {/* ... (Source content remains here) ... */}
-            <h2>Source:</h2>
-            <p>
-              Developed by : Spitzer RL, Kroenke K, Williams JB, Löwe B. 
-              A brief measure for assessing generalized anxiety disorder: the GAD-7. 
-              Arch Intern Med. 2006;166(10):1092-1107.
-            </p>
-            <a
-              href="https://www.mdcalc.com/calc/1725/gad-7-anxiety-scale"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              https://www.mdcalc.com/calc/1725/gad-7-anxiety-scale
-            </a>
-            <p>
-              <strong>Please note:</strong> Online screening tools are not diagnostic instruments. 
-              Share your results with a healthcare provider for proper evaluation.
-            </p>
-          </div>
         </div>
       ) : (
         <div className="result-section">
-          
-          {/* 1. TOP RESULT SUMMARY */}
           <h2>Your Result:</h2>
-          <p>
-            <strong>Score:</strong> {score} / {questions.length * 3}
-          </p>
-          <p>
-            <strong>{result.result}</strong>
-          </p>
+          <p><strong>Score:</strong> {score} / {questions.length * 3}</p>
+          <p><strong>{result.result}</strong></p>
           <p>{result.description}</p>
 
-          {/* 2. GAD-7 GUIDELINES (MOVED TO THE TOP) */}
-          <div className="gad7-guidelines">
-            <h3>Guide for Interpreting GAD-7 Scores</h3>
-            <p>
-              The GAD-7 is calculated by assigning scores of <strong>0, 1, 2, and 3</strong> to the response
-              categories of “Not at all,” “Several days,” “More than half the days,” and “Nearly every day,” respectively.
-              The total score ranges from <strong>0 to 21</strong>.
-            </p>
-            <table className="gad7-table">
-              <thead>
-                <tr>
-                  <th>Score</th>
-                  <th>Anxiety Severity</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td>0 – 4</td>
-                  <td>Minimal Anxiety</td>
-                </tr>
-                <tr>
-                  <td>5 – 9</td>
-                  <td>Mild Anxiety</td>
-                </tr>
-                <tr>
-                  <td>10 – 14</td>
-                  <td>Moderate Anxiety</td>
-                </tr>
-                <tr>
-                  <td>15 – 21</td>
-                  <td>Severe Anxiety</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-          {/* 3. HYBRID RISK ASSESSMENT */}
           {hybridRisk && (
             <div className="hybrid-risk-section">
               <h3>Hybrid Risk Assessment</h3>
@@ -239,44 +171,30 @@ const AnxietyTest = () => {
             </div>
           )}
 
-          {/* 4. YOUR ANSWERS (Retains boxed styling as it's inside .result-section) */}
           <h3>Your Answers:</h3>
           <ul>
             {questions.map((q, i) => (
               <li key={q.id}>
-                <strong>
-                  {i + 1}. {q.text}
-                </strong>
-                <br />
-                <span style={{ color: "#048bb8" }}>
-                  Your answer: {answers[i]}
-                </span>
+                <strong>{i + 1}. {q.text}</strong><br />
+                <span style={{ color: "#048bb8" }}>Your answer: {answers[i]}</span>
               </li>
             ))}
           </ul>
-        </div> 
-      )} 
 
-      {/* CHATBOT BUTTON AND WRAPPER (Outside result-section) */}
-      
-      {showResult && (
-        <button
-          onClick={toggleChatbot}
-          ref={chatbotButtonRef}
-          className="footer-button"
-        >
-          {isChatbotVisible ? "Hide Alarm bot" : "Open Alarm bot"}
-        </button>
-      )}
-      
-      {isChatbotVisible && result && (
-        <div className="chatbot-wrapper">
-          <Chatbot
-            combinedScore={score}
-            classification={result.result}
-            hybridRiskData={hybridRisk}
-            severeAlert={hybridRisk?.is_high_risk} 
-          />
+          <button onClick={toggleChatbot} ref={chatbotButtonRef} className="footer-button">
+            {isChatbotVisible ? "Hide Chatbot" : "Open Chatbot"}
+          </button>
+
+          {isChatbotVisible && (
+            <div className="chatbot-wrapper">
+              <Chatbot
+                combinedScore={score}
+                classification={result.result}
+                hybridRiskData={hybridRisk}
+                severeAlert={result?.result.startsWith("Severe Anxiety")}
+              />
+            </div>
+          )}
         </div>
       )}
     </div>
