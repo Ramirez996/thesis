@@ -2,8 +2,6 @@ import React, { useState, useRef } from "react";
 import "../testDesign/EatingTest.css";
 import Chatbot from "../pages/Chatbot";
 import { getApiUrl } from "../config/api";
-import { supabase } from "../supabaseClient";
-import { getAuth } from "firebase/auth"; // ✅ import Firebase auth
 
 const questions = [
   { id: 1, text: "Feeling nervous, anxious, or on edge?", options: ["Not at all", "Several days", "More than half the days", "Nearly every day"] },
@@ -51,6 +49,7 @@ const getAnxietyResult = (totalScore) => {
   }
   return result;
 };
+
 
 const AnxietyTest = () => {
   const [answers, setAnswers] = useState({});
@@ -102,37 +101,13 @@ const AnxietyTest = () => {
       if (data.is_high_risk) {
         setIsChatbotVisible(true);
       }
-
-      // ✅ INSERT TO SUPABASE (with Firebase user info)
-      const auth = getAuth();
-      const user = auth.currentUser;
-
-      if (user) {
-        const { error } = await supabase.from("anxiety_results").insert([
-          {
-            user_id: user.uid,
-            user_name: user.displayName || "Anonymous",
-            score: totalScore,
-            result_text: localResult.result,
-            created_at: new Date().toISOString(),
-          },
-        ]);
-
-        if (error) {
-          console.error("Error saving result to Supabase:", error.message);
-        } else {
-          console.log("Result successfully saved to Supabase ✅");
-        }
-      } else {
-        console.warn("No Firebase user logged in – result not saved.");
-      }
-
+      
     } catch (error) {
       console.error("Error fetching hybrid risk:", error);
       setResult(localResult);
-
+      
       if (localResult.is_high_risk) {
-        setIsChatbotVisible(true);
+          setIsChatbotVisible(true);
       }
     } finally {
       setShowResult(true);
@@ -142,6 +117,7 @@ const AnxietyTest = () => {
 
   return (
     <div className="test-container">
+      {/* === Loading Overlay === */}
       {isLoading && (
         <div className="loading-overlay">
           <div className="spinner"></div>
@@ -153,6 +129,7 @@ const AnxietyTest = () => {
 
       {!showResult ? (
         <div className="question-section">
+          {/* ... (Question display logic) ... */}
           {questions.map((q, i) => (
             <div key={q.id} className="question-item">
               <p>
@@ -180,12 +157,13 @@ const AnxietyTest = () => {
           >
             {isLoading ? "Submitting..." : "SUBMIT"}
           </button>
-
+          
           <div className="test-source">
+            {/* ... (Source content remains here) ... */}
             <h2>Source:</h2>
             <p>
-              Developed by: Spitzer RL, Kroenke K, Williams JB, Löwe B.  
-              A brief measure for assessing generalized anxiety disorder: the GAD-7.  
+              Developed by : Spitzer RL, Kroenke K, Williams JB, Löwe B. 
+              A brief measure for assessing generalized anxiety disorder: the GAD-7. 
               Arch Intern Med. 2006;166(10):1092-1107.
             </p>
             <a
@@ -196,35 +174,61 @@ const AnxietyTest = () => {
               https://www.mdcalc.com/calc/1725/gad-7-anxiety-scale
             </a>
             <p>
-              <strong>Please note:</strong> Online screening tools are not diagnostic instruments.  
+              <strong>Please note:</strong> Online screening tools are not diagnostic instruments. 
               Share your results with a healthcare provider for proper evaluation.
             </p>
           </div>
         </div>
       ) : (
         <div className="result-section">
+          
+          {/* 1. TOP RESULT SUMMARY */}
           <h2>Your Result:</h2>
           <p>
             <strong>Score:</strong> {score} / {questions.length * 3}
           </p>
-          <p><strong>{result.result}</strong></p>
+          <p>
+            <strong>{result.result}</strong>
+          </p>
           <p>{result.description}</p>
 
+          {/* 2. GAD-7 GUIDELINES (MOVED TO THE TOP) */}
           <div className="gad7-guidelines">
             <h3>Guide for Interpreting GAD-7 Scores</h3>
+            <p>
+              The GAD-7 is calculated by assigning scores of <strong>0, 1, 2, and 3</strong> to the response
+              categories of “Not at all,” “Several days,” “More than half the days,” and “Nearly every day,” respectively.
+              The total score ranges from <strong>0 to 21</strong>.
+            </p>
             <table className="gad7-table">
               <thead>
-                <tr><th>Score</th><th>Anxiety Severity</th></tr>
+                <tr>
+                  <th>Score</th>
+                  <th>Anxiety Severity</th>
+                </tr>
               </thead>
               <tbody>
-                <tr><td>0–4</td><td>Minimal Anxiety</td></tr>
-                <tr><td>5–9</td><td>Mild Anxiety</td></tr>
-                <tr><td>10–14</td><td>Moderate Anxiety</td></tr>
-                <tr><td>15–21</td><td>Severe Anxiety</td></tr>
+                <tr>
+                  <td>0 – 4</td>
+                  <td>Minimal Anxiety</td>
+                </tr>
+                <tr>
+                  <td>5 – 9</td>
+                  <td>Mild Anxiety</td>
+                </tr>
+                <tr>
+                  <td>10 – 14</td>
+                  <td>Moderate Anxiety</td>
+                </tr>
+                <tr>
+                  <td>15 – 21</td>
+                  <td>Severe Anxiety</td>
+                </tr>
               </tbody>
             </table>
           </div>
 
+          {/* 3. HYBRID RISK ASSESSMENT */}
           {hybridRisk && (
             <div className="hybrid-risk-section">
               <h3>Hybrid Risk Assessment</h3>
@@ -235,19 +239,26 @@ const AnxietyTest = () => {
             </div>
           )}
 
+          {/* 4. YOUR ANSWERS (Retains boxed styling as it's inside .result-section) */}
           <h3>Your Answers:</h3>
           <ul>
             {questions.map((q, i) => (
               <li key={q.id}>
-                <strong>{i + 1}. {q.text}</strong>
+                <strong>
+                  {i + 1}. {q.text}
+                </strong>
                 <br />
-                <span style={{ color: "#048bb8" }}>Your answer: {answers[i]}</span>
+                <span style={{ color: "#048bb8" }}>
+                  Your answer: {answers[i]}
+                </span>
               </li>
             ))}
           </ul>
-        </div>
-      )}
+        </div> 
+      )} 
 
+      {/* CHATBOT BUTTON AND WRAPPER (Outside result-section) */}
+      
       {showResult && (
         <button
           onClick={toggleChatbot}
@@ -257,14 +268,14 @@ const AnxietyTest = () => {
           {isChatbotVisible ? "Hide Alarm bot" : "Open Alarm bot"}
         </button>
       )}
-
+      
       {isChatbotVisible && result && (
         <div className="chatbot-wrapper">
           <Chatbot
             combinedScore={score}
             classification={result.result}
             hybridRiskData={hybridRisk}
-            severeAlert={hybridRisk?.is_high_risk}
+            severeAlert={hybridRisk?.is_high_risk} 
           />
         </div>
       )}
