@@ -6,7 +6,6 @@ import "../pages/anxiety.css";
 const History = () => {
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [notSignedIn, setNotSignedIn] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const { type } = location.state || {}; // type = "anxiety", "depression", etc.
@@ -16,27 +15,8 @@ const History = () => {
     fetchHistory(type);
   }, [type]);
 
-  const getCurrentUser = async () => {
-    try {
-      // supabase v2
-      if (supabase.auth && supabase.auth.getUser) {
-        const { data, error } = await supabase.auth.getUser();
-        if (error) throw error;
-        return data?.user ?? null;
-      }
-      // supabase v1 fallback
-      if (supabase.auth && supabase.auth.user) {
-        return supabase.auth.user();
-      }
-    } catch (err) {
-      console.error("Error getting current user:", err);
-    }
-    return null;
-  };
-
   const fetchHistory = async (type) => {
     setLoading(true);
-    setNotSignedIn(false);
 
     // Map test types to table names
     const tableMap = {
@@ -53,75 +33,13 @@ const History = () => {
       return;
     }
 
-    // get logged-in user and try to query by likely identifying columns
-    const user = await getCurrentUser();
-    if (!user) {
-      setHistory([]);
-      setNotSignedIn(true);
-      setLoading(false);
-      return;
-    }
+    const { data, error } = await supabase
+      .from(tableName)
+      .select("id, user_name, score, created_at")
+      .order("created_at", { ascending: false });
 
-    const selectCols = "id, user_name, score, created_at, user_id, user_email";
-
-    try {
-      // 1) try user_id column
-      let res = await supabase
-        .from(tableName)
-        .select(selectCols)
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false });
-
-      if (res.error) console.debug("user_id query error:", res.error);
-      if (res.data && res.data.length > 0) {
-        setHistory(res.data);
-        setLoading(false);
-        return;
-      }
-
-      // 2) try user_email column
-      if (user.email) {
-        res = await supabase
-          .from(tableName)
-          .select(selectCols)
-          .eq("user_email", user.email)
-          .order("created_at", { ascending: false });
-        if (res.error) console.debug("user_email query error:", res.error);
-        if (res.data && res.data.length > 0) {
-          setHistory(res.data);
-          setLoading(false);
-          return;
-        }
-      }
-
-      // 3) try matching user_name fields (username/full name/email)
-      const possibleNames = [
-        user.user_metadata?.full_name,
-        user.user_metadata?.name,
-        user.email,
-      ].filter(Boolean);
-
-      for (const name of possibleNames) {
-        const r = await supabase
-          .from(tableName)
-          .select(selectCols)
-          .eq("user_name", name)
-          .order("created_at", { ascending: false });
-        if (r.error) console.debug("user_name query error:", r.error);
-        if (r.data && r.data.length > 0) {
-          setHistory(r.data);
-          setLoading(false);
-          return;
-        }
-      }
-
-      // 4) fallback: try fetch limited recent records for this user_name if metadata missing
-      // If nothing matched, return empty list (no personal records found)
-      setHistory([]);
-    } catch (err) {
-      console.error(`Error fetching ${type} history:`, err);
-      setHistory([]);
-    }
+    if (error) console.error(`Error fetching ${type} history:`, error);
+    else setHistory(data || []);
 
     setLoading(false);
   };
@@ -150,10 +68,8 @@ const History = () => {
 
       {loading ? (
         <p>Loading your {type} history...</p>
-      ) : notSignedIn ? (
-        <p>Please sign in to view your personal {type} history.</p>
       ) : history.length === 0 ? (
-        <p>No previous {type} test results found for your account.</p>
+        <p>No previous {type} test results found.</p>
       ) : (
         <table className="history-table">
           <thead>
