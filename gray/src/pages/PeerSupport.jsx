@@ -532,7 +532,7 @@ const addComment = async () => {
 
   try {
     // Optional: still call your Flask emotion analyzer
-    const resp = await fetch('magnificent-flexibility-production.up.railway.app/analyze', {
+    const resp = await fetch('https://magnificent-flexibility-production.up.railway.app/analyze', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ text: commentText }),
