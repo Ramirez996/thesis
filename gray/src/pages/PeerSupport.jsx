@@ -54,8 +54,8 @@ const PeerSupport = ({ initialSpace = 'Community Support' }) => {
   const [currentUser, setCurrentUser] = useState(null);
 
   // Backend endpoints
-  const ANALYZE_URL = 'https://thesis-mental-health-production.up.railway.app/analyze';
-  const CSV_UPLOAD_URL = 'https://thesis-mental-health-production.up.railway.app/upload_csv';
+  const ANALYZE_URL = 'magnificent-flexibility-production.up.railway.app';
+  const CSV_UPLOAD_URL = 'magnificent-flexibility-production.up.railway.app/upload_csv';
 
   // -------------------- Auth + username handling --------------------
   useEffect(() => {
@@ -532,7 +532,7 @@ const addComment = async () => {
 
   try {
     // Optional: still call your Flask emotion analyzer
-    const resp = await fetch('https://thesis-mental-health-production.up.railway.app/analyze', {
+    const resp = await fetch('magnificent-flexibility-production.up.railway.app/analyze', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ text: commentText }),
