@@ -54,8 +54,8 @@ const PeerSupport = ({ initialSpace = 'Community Support' }) => {
   const [currentUser, setCurrentUser] = useState(null);
 
   // Backend endpoints
-  const ANALYZE_URL = 'magnificent-flexibility-production.up.railway.app';
-  const CSV_UPLOAD_URL = 'magnificent-flexibility-production.up.railway.app/upload_csv';
+  const ANALYZE_URL = 'https://magnificent-flexibility-production.up.railway.app';
+  const CSV_UPLOAD_URL = 'https://magnificent-flexibility-production.up.railway.app/upload_csv';
 
   // -------------------- Auth + username handling --------------------
   useEffect(() => {
