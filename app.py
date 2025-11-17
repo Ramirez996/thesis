@@ -232,7 +232,44 @@ def load_model():
     logger.info("Model loading disabled - using HF Space API instead")
     return None
 
-
+# # using hf now
+# def load_model():
+#     global model
+#     if model is None:
+#         if not ensure_checkpoint_available():
+#             logger.error("Could not ensure checkpoint availability")
+#             return None
+#             
+#         if os.path.exists(CHECKPOINT_FILE):
+#             logger.info("Loading checkpoint from %s", CHECKPOINT_FILE)
+#             try:
+#                 # torch.load may raise in newer torch versions if weights-only; allow full load for trusted local file
+#                 checkpoint = torch.load(CHECKPOINT_FILE, map_location=device, weights_only=False)
+#             except TypeError:
+#                 # older torch versions don't accept weights_only
+#                 checkpoint = torch.load(CHECKPOINT_FILE, map_location=device)
+#             except Exception as e:
+#                 logger.exception("Error loading checkpoint: %s", e)
+#                 return None
+#                 
+#             try:
+#                 num_labels = checkpoint.get('num_labels', len(checkpoint['label_encoder_classes']))
+#                 model = EmotionClassifier(num_labels).to(device)
+#                 model.load_state_dict(checkpoint['model_state_dict'])
+#                 label_encoder.classes_ = checkpoint['label_encoder_classes']
+#                 logger.info("Checkpoint loaded successfully: num_labels=%s, device=%s", num_labels, device)
+#              #delete natin try 
+#                 del checkpoint
+#                 gc.collect()
+#                 
+#             except Exception as e:
+#                 logger.exception("Error initializing model from checkpoint: %s", e)
+#                 model = None
+#                 return None
+#         else:
+#             logger.error("Checkpoint file does not exist at %s after download attempt", CHECKPOINT_FILE)
+#             return None
+#     return model
 
 def analyze_text(text):
     """Analyze emotion using HF Space API or simple fallback"""
@@ -299,8 +336,6 @@ GAD7_INTERCEPT = -5.857  # Adjusted for prob ≈ 0.5 at sum=10 (moderate cutoff)
 def gad7_risk():
     data = request.get_json()
     user_name = data.get("user_name", "Anonymous")
-    user_id = data.get("user_id")        # <-- new
-    user_email = data.get("user_email")  # <-- new
     answers = data.get("answers", [])
     text = data.get("text","")
 
@@ -330,11 +365,9 @@ def gad7_risk():
         db_conn, cursor_conn = ensure_db_connection()
         if db_conn and cursor_conn:
             cursor_conn.execute("""
-                INSERT INTO anxiety_results (user_id, user_email, user_name, score, result_text, description, lr_score, bert_anomaly_score, final_risk, is_high_risk, answers_json)
-                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                INSERT INTO anxiety_results (user_name, score, result_text, description, lr_score, bert_anomaly_score, final_risk, is_high_risk, answers_json)
+                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)
             """, (
-                user_id,
-                user_email,
                 user_name,
                 int(sum(answers)) if answers else 0,
                 risk_level,
