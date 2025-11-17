@@ -14,16 +14,39 @@ const History = () => {
   useEffect(() => {
     if (!type) return;
 
+    let subscription = null;
+
     const init = async () => {
       setLoading(true);
-      // Try supabase v2 api first
       let currentUser = null;
+
       try {
+        // Try Supabase v2 getUser()
         if (supabase.auth && typeof supabase.auth.getUser === "function") {
           const res = await supabase.auth.getUser();
           currentUser = res?.data?.user || null;
+
+          // If getUser returned null, try getSession() which may have the user
+          if (!currentUser && typeof supabase.auth.getSession === "function") {
+            const sess = await supabase.auth.getSession();
+            currentUser = sess?.data?.session?.user || null;
+          }
+
+          // subscribe to auth state changes so we update UI when session becomes available
+          if (typeof supabase.auth.onAuthStateChange === "function") {
+            const { data } = supabase.auth.onAuthStateChange((event, session) => {
+              const suser = session?.user || null;
+              setUser(suser);
+              if (suser) {
+                fetchHistory(type, suser);
+              } else {
+                setHistory([]);
+              }
+            });
+            subscription = data?.subscription || data; // v2 returns { data: { subscription } }
+          }
         } else if (supabase.auth && typeof supabase.auth.user === "function") {
-          // fallback to v1 style
+          // Supabase v1 fallback
           currentUser = supabase.auth.user() || null;
         }
       } catch (err) {
@@ -36,6 +59,15 @@ const History = () => {
     };
 
     init();
+
+    return () => {
+      // cleanup subscription if present
+      if (subscription && typeof subscription.unsubscribe === "function") {
+        subscription.unsubscribe();
+      } else if (subscription && typeof subscription === "function") {
+        try { subscription(); } catch (e) {}
+      }
+    };
   }, [type]);
 
   const fetchHistory = async (type, currentUser) => {
