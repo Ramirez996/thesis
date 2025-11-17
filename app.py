@@ -299,6 +299,8 @@ GAD7_INTERCEPT = -5.857  # Adjusted for prob ≈ 0.5 at sum=10 (moderate cutoff)
 def gad7_risk():
     data = request.get_json()
     user_name = data.get("user_name", "Anonymous")
+    user_id = data.get("user_id")        # <-- new
+    user_email = data.get("user_email")  # <-- new
     answers = data.get("answers", [])
     text = data.get("text","")
 
@@ -328,9 +330,11 @@ def gad7_risk():
         db_conn, cursor_conn = ensure_db_connection()
         if db_conn and cursor_conn:
             cursor_conn.execute("""
-                INSERT INTO anxiety_results (user_name, score, result_text, description, lr_score, bert_anomaly_score, final_risk, is_high_risk, answers_json)
-                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                INSERT INTO anxiety_results (user_id, user_email, user_name, score, result_text, description, lr_score, bert_anomaly_score, final_risk, is_high_risk, answers_json)
+                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
             """, (
+                user_id,
+                user_email,
                 user_name,
                 int(sum(answers)) if answers else 0,
                 risk_level,
