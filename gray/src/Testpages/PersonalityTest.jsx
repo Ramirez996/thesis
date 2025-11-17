@@ -143,7 +143,7 @@ const PersonalityTest = () => {
       {!showResult ? (
         <div className="question-section">
           {/* ... (Questions and Submit button logic) ... */}
-          <h1>Personality Test (BFI-10)</h1>
+          <h1>Big Give Inventory(BFI-10)Personality Test </h1>
           {questions.map((q, i) => (
             <div key={q.id} className="question-item">
               <p>

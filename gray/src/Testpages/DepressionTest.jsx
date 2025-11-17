@@ -136,8 +136,9 @@ const DepressionTest = () => {
 
       {!showResult ? (
         <div className="question-section">
+
           {/* ... (Question content here) ... */}
-          <h1>Depression Test (PHQ-9)</h1>
+          <h1>Patient Health Questionnaire (PHQ-9) Depression Test</h1>
 
           {questions.map((q, i) => (
             <div key={q.id} className="question-item">

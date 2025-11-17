@@ -122,7 +122,7 @@ const WellTest = () => {
 
       {!showResult ? (
         <div className="question-section">
-          <h1>Well-Being Test (WHO-5)</h1>
+          <h1>World Health Organization(WHO-5)Well-Being Test </h1>
           {questions.map((q, i) => (
             <div key={q.id} className="question-item">
               <p>
