@@ -6,84 +6,19 @@ import "../pages/anxiety.css";
 const History = () => {
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState(null);
-  const [debugMsg, setDebugMsg] = useState(null);
   const navigate = useNavigate();
   const location = useLocation();
   const { type } = location.state || {}; // type = "anxiety", "depression", etc.
 
   useEffect(() => {
     if (!type) return;
-
-    let subscription = null;
-    let mounted = true;
-
-    const getCurrentUser = async () => {
-      try {
-        // Supabase v2
-        if (supabase.auth && typeof supabase.auth.getUser === "function") {
-          const res = await supabase.auth.getUser();
-          if (res?.data?.user) return res.data.user;
-          // try session if getUser returned null
-          if (typeof supabase.auth.getSession === "function") {
-            const sess = await supabase.auth.getSession();
-            return sess?.data?.session?.user || null;
-          }
-        }
-        // Supabase v1 fallback
-        if (supabase.auth && typeof supabase.auth.user === "function") {
-          return supabase.auth.user() || null;
-        }
-      } catch (err) {
-        console.error("getCurrentUser error:", err);
-      }
-      return null;
-    };
-
-    const init = async () => {
-      setLoading(true);
-      const currentUser = await getCurrentUser();
-      if (!mounted) return;
-      setUser(currentUser);
-      console.debug("History:init currentUser:", currentUser);
-      await fetchHistory(type, currentUser);
-      setLoading(false);
-
-      // subscribe to auth state changes
-      try {
-        if (supabase.auth && typeof supabase.auth.onAuthStateChange === "function") {
-          const { data } = supabase.auth.onAuthStateChange((event, session) => {
-            const suser = session?.user || null;
-            console.debug("onAuthStateChange:", event, suser);
-            setUser(suser);
-            if (suser) fetchHistory(type, suser);
-            else setHistory([]);
-          });
-          // v2 returns { data: { subscription } }
-          subscription = data?.subscription || data;
-        }
-      } catch (err) {
-        console.warn("Auth subscription error:", err);
-      }
-    };
-
-    init();
-
-    return () => {
-      mounted = false;
-      if (subscription) {
-        if (typeof subscription.unsubscribe === "function") {
-          subscription.unsubscribe();
-        } else if (typeof subscription === "function") {
-          try { subscription(); } catch (e) {}
-        }
-      }
-    };
+    fetchHistory(type);
   }, [type]);
 
-  const fetchHistory = async (type, currentUser) => {
+  const fetchHistory = async (type) => {
     setLoading(true);
 
+    // Map test types to table names
     const tableMap = {
       anxiety: "anxiety_results",
       depression: "depression_results",
@@ -98,71 +33,15 @@ const History = () => {
       return;
     }
 
-    if (!currentUser) {
-      setDebugMsg("No currentUser when fetching history.");
-      setHistory([]);
-      setLoading(false);
-      return;
-    }
+    const { data, error } = await supabase
+      .from(tableName)
+      .select("id, user_name, score, created_at")
+      .order("created_at", { ascending: false });
 
-    // Build possible identifiers
-    const identifiers = {
-      id: currentUser.id || null,
-      email: currentUser.email || null,
-      // common metadata keys
-      name: currentUser.user_metadata?.full_name || currentUser.user_metadata?.name || null,
-    };
+    if (error) console.error(`Error fetching ${type} history:`, error);
+    else setHistory(data || []);
 
-    console.debug("fetchHistory: identifiers:", identifiers);
-
-    // Try to query matching by user_id, user_email, or user_name
-    const filters = [];
-    if (identifiers.id) filters.push(`user_id.eq.${identifiers.id}`);
-    if (identifiers.email) {
-      filters.push(`user_email.eq.${identifiers.email}`);
-      filters.push(`user_name.eq.${identifiers.email}`); // in case user_name stores email
-    }
-    if (identifiers.name) filters.push(`user_name.eq.${identifiers.name}`);
-
-    if (filters.length === 0) {
-      setDebugMsg("No usable identifier found on the Supabase user object.");
-      setHistory([]);
-      setLoading(false);
-      return;
-    }
-
-    try {
-      let query;
-      if (filters.length === 1) {
-        // single filter -> use eq
-        const [raw] = filters;
-        const [col, op, val] = raw.split(".");
-        query = supabase.from(tableName).select("id, user_name, score, created_at").eq(col, val);
-        console.debug("fetchHistory: single eq query:", { col, val });
-      } else {
-        // multiple -> use or()
-        const orFilter = filters.join(",");
-        query = supabase.from(tableName).select("id, user_name, score, created_at").or(orFilter);
-        console.debug("fetchHistory: or query:", orFilter);
-      }
-
-      const { data, error } = await query.order("created_at", { ascending: false });
-
-      if (error) {
-        console.error("Supabase fetch error:", error);
-        setDebugMsg(`DB error: ${error.message}`);
-        setHistory([]);
-      } else {
-        setDebugMsg(`Fetched ${data?.length || 0} records from ${tableName}`);
-        setHistory(data || []);
-      }
-    } catch (err) {
-      console.error("fetchHistory exception:", err);
-      setDebugMsg("Unexpected error fetching history.");
-      setHistory([]);
-    } finally {
-      setLoading(false);
-    }
+    setLoading(false);
   };
 
   const getTitle = (type) => {
@@ -189,25 +68,8 @@ const History = () => {
 
       {loading ? (
         <p>Loading your {type} history...</p>
-      ) : !user ? (
-        <p>Please log in to view your {type} history.</p>
       ) : history.length === 0 ? (
-        <>
-          <p>No previous {type} test results found for your account.</p>
-          {debugMsg && <p className="debug-msg">Debug: {debugMsg}</p>}
-          <pre style={{ whiteSpace: "pre-wrap", color: "#666" }}>
-            {/* show minimal user info for debugging */}
-            {JSON.stringify(
-              {
-                id: user?.id,
-                email: user?.email,
-                metadata: user?.user_metadata,
-              },
-              null,
-              2
-            )}
-          </pre>
-        </>
+        <p>No previous {type} test results found.</p>
       ) : (
         <table className="history-table">
           <thead>
