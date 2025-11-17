@@ -125,7 +125,7 @@ const AnxietyTest = () => {
         </div>
       )}
 
-      <h1>Anxiety Test (GAD-7)</h1>
+      <h1>Anxiety Test for GAD-7 (Generalized Anxiety Disorder)</h1>
 
       {!showResult ? (
         <div className="question-section">
