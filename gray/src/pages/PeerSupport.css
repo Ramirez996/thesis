@@ -362,7 +362,7 @@
   font-size: 1.1rem;
 }
 .username-modal {
-  color: black;
+  color: rgb(255, 255, 255);
   position: fixed;
   top: 0;
   left: 0;
