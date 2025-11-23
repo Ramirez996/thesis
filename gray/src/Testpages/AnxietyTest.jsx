@@ -24,25 +24,25 @@ const getAnxietyResult = (totalScore) => {
   let result;
   if (totalScore >= 15) {
     result = {
-      result: "Severe Anxiety – Consider professional help.",
+      result: "😰Severe Anxiety – Consider professional help.",
       description: "Your score suggests severe anxiety. Please consult a professional.",
       is_high_risk: true,
     };
   } else if (totalScore >= 10) {
     result = {
-      result: "Moderate Anxiety – Keep monitoring.",
+      result: "😫Moderate Anxiety – Keep monitoring.",
       description: "Your score suggests moderate anxiety.",
       is_high_risk: false,
     };
   } else if (totalScore >= 5) {
     result = {
-      result: "Mild Anxiety – Be mindful of your well-being.",
+      result: "😐Mild Anxiety – Be mindful of your well-being.",
       description: "Your score suggests mild anxiety.",
       is_high_risk: false,
     };
   } else {
     result = {
-      result: "Minimal Anxiety – Keep taking care of yourself!",
+      result: "😊 Minimal Anxiety – Keep taking care of yourself!",
       description: "Your score indicates minimal anxiety.",
       is_high_risk: false,
     };

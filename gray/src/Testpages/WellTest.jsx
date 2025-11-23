@@ -27,17 +27,17 @@ const calculateWellBeing = (rawScore) => {
   let isHighRisk = false;
 
   if (percentageScore <= 28) {
-    result = "Indicative of Depression";
+    result = "😖Indicative of Depression";
     description =
       "Your score suggests a high likelihood of depression. It’s important to reach out to a mental health professional or counselor for further assessment and support.";
     isHighRisk = true;
   } else if (percentageScore < 50) {
-    result = "Poor Well-being (Possible Depression)";
+    result = "😟Poor Well-being (Possible Depression)";
     description =
       "Your well-being may be lower than average. Consider engaging in self-care, social connection, and if necessary, consulting a healthcare provider.";
     isHighRisk = true;
   } else {
-    result = "Good Well-being";
+    result = "😆Good Well-being";
     description =
       "You seem to be experiencing a satisfactory level of well-being. Keep maintaining your healthy habits and stay mindful of your emotional state.";
   }
