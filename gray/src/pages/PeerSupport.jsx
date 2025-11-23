@@ -27,6 +27,24 @@ const relatedCommunities = [
   'Personality'
 ];
 
+// -------------------- Badword Censorship --------------------
+const BADWORDS = [
+  'damn', 'hell', 'crap', 'ass', 'bitch', 'bastard', 'shit', 'fuck',
+  'dick', 'pussy', 'whore', 'slut', 'douche', 'prick', 'jerk', 'stupid',
+  'idiot', 'moron', 'dumbass', 'asshole', 'motherfucker', 'nigga',
+  // Add more words as needed
+];
+
+const censorBadwords = (text) => {
+  let censored = text;
+  BADWORDS.forEach(word => {
+    const regex = new RegExp(`\\b${word}\\b`, 'gi');
+    const asterisks = '*'.repeat(word.length);
+    censored = censored.replace(regex, asterisks);
+  });
+  return censored;
+};
+
 // -------------------- Main Component --------------------
 const PeerSupport = ({ initialSpace = 'Community Support' }) => {
   const [activeSpace, setActiveSpace] = useState(initialSpace);
@@ -519,7 +537,6 @@ const PostCard = ({ post, space, posts, setPosts, isAdmin, username, comments = 
     }
   }, []);
 
-
   
 const addComment = async () => {
   if (!commentText.trim()) return;
@@ -531,22 +548,23 @@ const addComment = async () => {
   }
 
   try {
-    // Optional: still call your Flask emotion analyzer
+    // ✅ Censor badwords before sending
+    const censoredText = censorBadwords(commentText);
+
     const resp = await fetch('https://magnificent-flexibility-production.up.railway.app/analyze', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text: commentText }),
+      body: JSON.stringify({ text: censoredText }),
     });
     const analysis = resp.ok ? await resp.json() : { label: 'neutral' };
     const emotion = analysis.label || 'neutral';
 
-    // ✅ Save to Supabase (with user_name)
     const { data, error } = await supabase
       .from('comments')
       .insert([
         {
           post_id: post.id,
-          text: commentText,
+          text: censoredText,
           user_name: userNameToUse,
           emotion,
           created_at: new Date().toISOString(),
@@ -556,7 +574,6 @@ const addComment = async () => {
 
     if (error) throw error;
 
-    // ✅ Update UI
     setCommentsByPost(prev => ({
       ...prev,
       [post.id]: [...(prev[post.id] || []), data[0]],
@@ -568,7 +585,6 @@ const addComment = async () => {
     alert('Failed to add comment.');
   }
 };
-
 
 
 
