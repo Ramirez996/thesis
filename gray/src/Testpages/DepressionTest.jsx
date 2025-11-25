@@ -28,32 +28,32 @@ const getDepressionResult = (score) => {
 
   if (score >= 20)
     return {
-      result: "Severe Depression – Please seek professional help.",
+      result: "😰Severe Depression – Please seek professional help.",
       description:
         "Your score suggests severe depression. Consult a mental health professional.",
       is_high_risk: isHighRisk,
     };
   if (score >= 15)
     return {
-      result: "Moderately Severe Depression – Consider speaking with a professional.",
+      result: "😔Moderately Severe Depression – Consider speaking with a professional.",
       description:
         "Your score suggests moderately severe depression. Professional guidance is recommended.",
       is_high_risk: isHighRisk,
     };
   if (score >= 10)
     return {
-      result: "Moderate Depression – Monitor and take care of yourself.",
+      result: "☹️Moderate Depression – Monitor and take care of yourself.",
       description: "Your score suggests moderate depression.",
       is_high_risk: isHighRisk,
     };
   if (score >= 5)
     return {
-      result: "Mild Depression – Be mindful of your mental well-being.",
+      result: "🙂Mild Depression – Be mindful of your mental well-being.",
       description: "Your score suggests mild depression.",
       is_high_risk: isHighRisk,
     };
   return {
-    result: "Minimal Depression – You're doing well.",
+    result: "😊Minimal Depression – You're doing well.",
     description: "Your score indicates minimal depression symptoms.",
     is_high_risk: isHighRisk,
   };
