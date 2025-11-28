@@ -175,6 +175,9 @@ const WellTest = () => {
               and the researchers disclaim any liability, loss, or risk incurred
               as a consequence, directly or indirectly, from the use and
               application of these screens.
+              Under <strong>Replublic Act No. 10029, Section 3(d), "Philippines Psychology Act of 2009"</strong>, this defines psychological assessment as the use of “objective and standardized measurement tools”.
+              Section 14: Use of Psychological Tests, Only licensed psychologists and psychometricians may administer, score, and interpret psychological tests.
+              Since PHQ-9, GAD-7, WHO-5, and BFI-10 are psychological assessment instruments, their use is regulated by this section.
             </p>
           </div>
         </div>

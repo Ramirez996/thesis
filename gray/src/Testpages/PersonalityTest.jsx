@@ -187,6 +187,9 @@ const PersonalityTest = () => {
             >
               https://homepages.se.edu/cvonbergen/files/2013/01/Measuring-Personality-in-One-Minute-or-Less_A-10-Item-Short-Version-of-the-Big-Five-Inventory-in-English-and-German.pdf
             </a>
+            <p>Under <strong>Replublic Act No. 10029, Section 3(d), "Philippines Psychology Act of 2009"</strong>, this defines psychological assessment as the use of “objective and standardized measurement tools”.
+              Section 14: Use of Psychological Tests, Only licensed psychologists and psychometricians may administer, score, and interpret psychological tests.
+              Since PHQ-9, GAD-7, WHO-5, and BFI-10 are psychological assessment instruments, their use is regulated by this section.</p>
           </div>
         </div>
       ) : (
