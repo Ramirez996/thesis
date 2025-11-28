@@ -175,7 +175,8 @@ const AnxietyTest = () => {
             </a>
             <p>
               <strong>Please note:</strong> Online screening tools are not diagnostic instruments. 
-              Share your results with a healthcare provider for proper evaluation.
+              Share your results with a healthcare provider for proper evaluation. 
+              Under Replublic Act No. 10029, Section 3(d), "Philippines Psychology Act of 2009", This defines psychological assessment as the use of “objective and standardized measurement tools”.
             </p>
           </div>
         </div>
