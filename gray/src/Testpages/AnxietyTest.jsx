@@ -176,7 +176,9 @@ const AnxietyTest = () => {
             <p>
               <strong>Please note:</strong> Online screening tools are not diagnostic instruments. 
               Share your results with a healthcare provider for proper evaluation. 
-              Under Replublic Act No. 10029, Section 3(d), "Philippines Psychology Act of 2009", This defines psychological assessment as the use of “objective and standardized measurement tools”.
+              Under Replublic Act No. 10029, Section 3(d), "Philippines Psychology Act of 2009", this defines psychological assessment as the use of “objective and standardized measurement tools”.
+              Section 14: Use of Psychological Tests, Only licensed psychologists and psychometricians may administer, score, and interpret psychological tests.
+              Since PHQ-9, GAD-7, WHO-5, and BFI-10 are psychological assessment instruments, their use is regulated by this section.
             </p>
           </div>
         </div>
