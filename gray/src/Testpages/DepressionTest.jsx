@@ -195,15 +195,21 @@ const DepressionTest = () => {
           </div>
         </div>
       ) : (
-        <div className="result-section">
-          <h2>Your Result:</h2>
-          <p>
-            <strong>Score:</strong> {score} / 27
-          </p>
-          <p>
-            <strong>{result.result}</strong>
-          </p>
+    <div className="result-section">
+
+      <div className="result-summary">
+        <h2>Your Result</h2>
+
+        <div className="score-box">
+          <p className="score-value">{score} / 27</p>
+          <p className="score-label">Total Score</p>
+        </div>
+
+        <div className="result-message">
+          <h3>{result.result}</h3>
           <p>{result.description}</p>
+        </div>
+      </div>
 
           <div className="phq9-guidelines">
             {/* ... (PHQ-9 Guide table content here) ... */}

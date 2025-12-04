@@ -300,3 +300,43 @@ submit-button:disabled {
   border-left: none; /* Remove blue border */
   margin-bottom: 8px; /* Standard spacing for bullet points */
 }
+
+
+/* --- Results Section (Cleaner Visuals) --- */
+.result-summary {
+  background: white;
+  padding: 2rem;
+  border-radius: 18px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+  border: 1px solid #e0e7eb;
+  margin-bottom: 2rem;
+}
+
+.score-box {
+  text-align: center;
+  border-radius: 14px;
+  background: #f4fcff;
+  padding: 1rem 1.3rem;
+  border: 1px solid #cceffc;
+  margin-bottom: 1rem;
+}
+
+.score-value {
+  font-size: 2.4rem;
+  font-weight: bold;
+  color: #028bb7;
+}
+
+.score-label {
+  font-size: 0.9rem;
+  color: #555;
+}
+
+.result-message h3 {
+  color: #045d75;
+}
+
+.result-message p {
+  color: #333;
+  line-height: 1.6rem;
+}

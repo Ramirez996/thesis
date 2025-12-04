@@ -182,18 +182,27 @@ const WellTest = () => {
           </div>
         </div>
       ) : (
-        <div className="result-section">
-          <h2>Your Result:</h2>
-          <p>
-            <strong>Raw Score:</strong> {rawScore} / 25
-          </p>
-          <p>
-            <strong>Percentage Score:</strong> {result.percentageScore}%
-          </p>
-          <p>
-            <strong>{result.result}</strong>
-          </p>
-          <p>{result.description}</p>
+            <div className="result-section">
+
+              <div className="result-summary">
+                <h2>Your Result</h2>
+
+            {/* Score Box */}
+            <div className="score-box">
+              <p className="score-value">{rawScore} / 25</p>
+              <p className="score-label">Raw Score</p>
+
+            {/* NEW: Percentage sentence */} 
+            <p className="score-percentage"> <strong>Percentage Score:</strong> 
+            {result.percentageScore}% </p> 
+            </div>
+
+            {/* Result Message */}
+            <div className="result-message">
+              <h3>{result.result}</h3>
+              <p>{result.description}</p>
+            </div>
+              </div>
 
           {/* === WHO-5 Scoring Guidelines (BOXED STYLE) === */}
           <div className="scoring-guidelines" style={{ marginTop: "2rem" }}>

@@ -183,17 +183,21 @@ const AnxietyTest = () => {
           </div>
         </div>
       ) : (
-        <div className="result-section">
-          
-          {/* 1. TOP RESULT SUMMARY */}
-          <h2>Your Result:</h2>
-          <p>
-            <strong>Score:</strong> {score} / {questions.length * 3}
-          </p>
-          <p>
-            <strong>{result.result}</strong>
-          </p>
-          <p>{result.description}</p>
+          <div className="result-section">
+
+            <div className="result-summary">
+              <h2>Your Result</h2>
+
+              <div className="score-box">
+                <p className="score-value">{score} / {questions.length * 3}</p>
+                <p className="score-label">Total Score</p>
+              </div>
+
+              <div className="result-message">
+                <h3>{result.result}</h3>
+                <p>{result.description}</p>
+              </div>
+            </div>
 
           {/* 2. GAD-7 GUIDELINES (MOVED TO THE TOP) */}
           <div className="gad7-guidelines">
